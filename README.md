@@ -27,7 +27,7 @@ Vault is a graphical wrapper around [rclone](https://rclone.org/). You bring you
 
 ## 🚀 Getting started
 
-1. Download the latest **`Vault.exe`** from the [Releases](../../releases) page.
+1. **[Download Vault.exe](https://github.com/moadalaouisosse-code/Vault/releases/latest/download/Vault.exe)** (the latest version). Older versions are on the [Releases](../../releases) page.
 2. Double-click it. There is nothing to install and nothing else to download. Vault includes everything it needs.
 3. Set up a private Backblaze B2 bucket and an application key (step-by-step guide below).
 4. In Vault, open the **Connect** tab, add your bucket, and start using it.
@@ -228,14 +228,14 @@ Both Workers only list and download files, so give them a key that **can't delet
 
 ### Step 2: Create the two Workers
 
-Each Worker is just **one JavaScript file** that you paste into Cloudflare's online editor. There is nothing to install, no project to set up and no command line. This repository contains the two files: `worker/vault.js` and `worker/share.js`.
+Each Worker is just **one JavaScript file** that you paste into Cloudflare's online editor. There is nothing to install, no project to set up and no command line. This repository contains the two files, in the `cloudflare workers` folder: `acc.js` (for the `vault` Worker) and `share.js` (for the `share` Worker).
 
 Do the following twice, once per Worker:
 
 1. Log in at <https://dash.cloudflare.com/> and open **Workers & Pages**.
 2. Click **Create** and choose to create a Worker, starting from the **"Hello World"** template.
 3. Give it a name: **`vault`** for the first one, **`share`** for the second. Click **Deploy**.
-4. Click **Edit code**. Select everything in the editor (`Ctrl+A`), delete it, and paste the **entire contents** of the matching file (`vault.js` into `vault`, `share.js` into `share`). Click **Deploy**.
+4. Click **Edit code**. Select everything in the editor (`Ctrl+A`), delete it, and paste the **entire contents** of the matching file (`acc.js` into `vault`, `share.js` into `share`). Click **Deploy**.
 
 When you're done, each Worker has an address like `https://share.<your-subdomain>.workers.dev`. **Write down the `share` Worker's address.** The `vault` Worker needs it in step 5.
 
@@ -365,10 +365,10 @@ For the curious: it's built with Python and [PyWebView](https://pywebview.flowrl
 
 ---
 
-## Credits and license
+## 🙏 Credits and license
 
 Vault includes [rclone](https://rclone.org/) (MIT license) to handle transfers and uses [PyWebView](https://pywebview.flowrl.com/). [VLC](https://www.videolan.org/) is optional and is not bundled.
 
 Vault is an independent project and is not affiliated with or endorsed by Backblaze.
 
-Vault is released under the [MIT License](LICENSE). Third-party components keep their own licenses, listed in [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt).
+Vault is released under the [MIT License](LICENSE.txt). Third-party components keep their own licenses, listed in [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt).
