@@ -1,0 +1,1899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vault</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#0C0F1A; --panel:#111520; --card:#161B2A; --border:#1E2640; --border2:#2A3550;
+      --accent:#4F7EF7; --accent-d:#3A63D4; --accent-t:rgba(79,126,247,0.10); --accent-t2:rgba(79,126,247,0.18);
+      --success:#22C55E; --danger:#EF4444; --warn:#F59E0B;
+      --text:#E8EDF5; --sub:#7A8BA8; --dim:#3A4560;
+      --mono:'JetBrains Mono',monospace; --sans:'Inter',sans-serif; --r:10px;
+    }
+    [hidden] { display:none !important; }
+    html, body { height:100%; background:var(--bg); color:var(--text); font-family:var(--sans); font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+    .shell { min-height:100vh; display:flex; flex-direction:column; max-width:820px; margin:0 auto; padding:0 28px 64px; }
+
+    /* Titlebar */
+    .titlebar { display:flex; align-items:center; justify-content:space-between; padding:28px 0 24px; border-bottom:1px solid var(--border); margin-bottom:28px; }
+    .logo { display:flex; align-items:center; gap:12px; }
+    .logo-mark { width:36px; height:36px; background:transparent !important; border-radius:10px; display:flex; align-items:center; justify-content:center; }
+    .logo-mark svg { width:18px; height:18px; fill:#fff; }
+    .logo-text { line-height:1.2; }
+    .logo-name { font-size:16px; font-weight:600; letter-spacing:-0.02em; }
+    .logo-hint { font-size:11px; color:var(--sub); font-family:var(--mono); }
+    .conn-badge { display:flex; align-items:center; gap:6px; font-size:11px; font-family:var(--mono); color:var(--sub); background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 12px; }
+    .dot { width:7px; height:7px; border-radius:50%; background:var(--dim); }
+    .dot.connected { background:var(--success); box-shadow:0 0 6px var(--success); }
+
+    /* Tabs */
+    .tabs { display:flex; gap:2px; background:var(--panel); border:1px solid var(--border); border-radius:var(--r); padding:4px; margin-bottom:28px; }
+    .tab-btn { flex:1; display:flex; align-items:center; justify-content:center; gap:7px; padding:9px 16px; border-radius:7px; border:none; background:transparent; color:var(--sub); font-family:var(--sans); font-size:13px; font-weight:500; cursor:pointer; transition:background 0.15s, color 0.15s; }
+    .tab-btn svg { width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+    .tab-btn:hover { color:var(--text); background:var(--card); }
+    .tab-btn.active { background:var(--card); color:var(--text); border:1px solid var(--border2); }
+    .tab-btn.active svg { stroke:var(--accent); }
+
+    .panel { display:none; }
+    .panel.active { display:block; }
+
+    /* Card */
+    .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:22px 24px; margin-bottom:16px; }
+    .card-title { font-size:13px; font-weight:600; margin-bottom:4px; }
+    .card-desc { font-size:12px; color:var(--sub); margin-bottom:18px; line-height:1.5; }
+
+    /* Form */
+    .field { margin-bottom:14px; }
+    .field label { display:block; font-size:11px; font-family:var(--mono); color:var(--sub); letter-spacing:0.07em; margin-bottom:6px; }
+    .field input[type="text"], .field input[type="password"] { width:100%; background:var(--panel); border:1px solid var(--border); color:var(--text); font-family:var(--mono); font-size:13px; padding:10px 13px; border-radius:8px; outline:none; transition:border-color 0.15s, box-shadow 0.15s; }
+    .field input::placeholder { color:var(--dim); }
+    .field input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-t); }
+    .field input:disabled { opacity:0.45; cursor:not-allowed; }
+
+    /* Buttons */
+    .btn { display:inline-flex; align-items:center; gap:7px; padding:10px 20px; border:none; border-radius:8px; font-family:var(--sans); font-size:13px; font-weight:500; cursor:pointer; transition:background 0.15s, box-shadow 0.15s, opacity 0.15s; }
+    .btn svg { width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+    .btn-primary { background:var(--accent); color:#fff; }
+    .btn-primary:hover { background:var(--accent-d); }
+    .btn-ghost { background:var(--panel); border:1px solid var(--border); color:var(--sub); }
+    .btn-ghost:hover { color:var(--text); border-color:var(--border2); }
+    .btn-danger { background:var(--danger); color:#fff; }
+    .btn-danger:hover { background:#dc2626; }
+    .btn-danger:disabled { opacity:0.45; cursor:not-allowed; }
+    .btn-danger-ghost { background:transparent; border:1px solid rgba(239,68,68,0.3); color:var(--danger); }
+    .btn-danger-ghost:hover { background:rgba(239,68,68,0.07); }
+    .btn:disabled { opacity:0.45; cursor:not-allowed; }
+    .btn-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+
+    /* Feedback */
+    .feedback { font-size:12px; font-family:var(--mono); padding:9px 13px; border-radius:7px; margin-top:14px; display:none; }
+    .feedback.ok   { background:rgba(34,197,94,0.08); color:var(--success); border:1px solid rgba(34,197,94,0.18); display:block; }
+    .feedback.err  { background:rgba(239,68,68,0.08); color:var(--danger);  border:1px solid rgba(239,68,68,0.18); display:block; }
+    .feedback.busy { background:var(--accent-t);      color:var(--accent);  border:1px solid rgba(79,126,247,0.2); display:block; }
+    .feedback.warn { background:rgba(245,158,11,0.08); color:var(--warn);   border:1px solid rgba(245,158,11,0.18); display:block; }
+
+    /* Connected state */
+    .conn-state { display:none; background:rgba(34,197,94,0.06); border:1px solid rgba(34,197,94,0.18); border-radius:10px; padding:16px 20px; margin-bottom:16px; align-items:center; gap:14px; }
+    .conn-state.visible { display:flex; }
+    .conn-icon { width:36px; height:36px; background:rgba(34,197,94,0.12); border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .conn-icon svg { width:18px; height:18px; stroke:var(--success); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+    .conn-info { flex:1; min-width:0; }
+    .conn-info strong { font-size:13px; color:var(--text); display:block; }
+    .conn-info span { font-size:11px; font-family:var(--mono); color:var(--sub); }
+
+    /* Stored remotes */
+    .remotes-list { list-style:none; display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+    .remote-item { display:flex; align-items:center; gap:12px; background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:11px 14px; transition:border-color 0.15s; }
+    .remote-item:hover { border-color:var(--border2); }
+    .remote-item-icon { width:30px; height:30px; background:var(--accent-t); border-radius:6px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .remote-item-icon svg { width:14px; height:14px; stroke:var(--accent); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+    .remote-item-name { flex:1; min-width:0; font-family:var(--mono); font-size:12px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .remote-connect-btn { flex-shrink:0; background:none; border:1px solid var(--border); color:var(--sub); font-size:11px; font-family:var(--sans); font-weight:500; padding:5px 12px; border-radius:6px; cursor:pointer; transition:border-color 0.15s, color 0.15s; }
+    .remote-item:hover .remote-connect-btn { border-color:var(--accent); color:var(--accent); }
+	.remote-connect-btn:disabled,
+	.remote-item:hover .remote-connect-btn:disabled { cursor:default; border-color:rgba(34,197,94,0.3); color:var(--success); background:rgba(34,197,94,0.06); }
+    .remote-delete-btn { flex-shrink:0; background:none; border:none; color:var(--dim); cursor:pointer; padding:4px; border-radius:4px; display:flex; align-items:center; transition:color 0.15s; text-decoration:none; }
+    .remote-delete-btn:hover { color:var(--danger); }
+    .remote-delete-btn svg { width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+    .empty-remotes { padding:28px 0; text-align:center; font-family:var(--mono); font-size:12px; color:var(--sub); }
+
+    /* Add-new form */
+    .add-remote-toggle { display:flex; align-items:center; gap:8px; background:none; border:1px dashed var(--border2); color:var(--sub); font-family:var(--sans); font-size:13px; font-weight:500; padding:10px 16px; border-radius:8px; cursor:pointer; width:100%; transition:border-color 0.15s, color 0.15s; margin-bottom:0; }
+    .add-remote-toggle:hover { border-color:var(--accent); color:var(--accent); }
+    .add-remote-toggle svg { width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+    .add-remote-form { overflow:hidden; max-height:0; opacity:0; transition:max-height 0.25s ease, opacity 0.2s ease, margin-top 0.2s ease; margin-top:0; }
+    .add-remote-form.open { max-height:680px; opacity:1; margin-top:12px; }
+    .add-remote-form .card { margin-bottom:0; }
+
+    .divider { border:none; border-top:1px solid var(--border); margin:20px 0; }
+    .section-label { font-size:10px; font-family:var(--mono); color:var(--sub); letter-spacing:0.09em; margin-bottom:10px; }
+
+    /* Folder selector */
+    .folder-row { display:flex; align-items:flex-end; gap:10px; margin-bottom:16px; }
+    .folder-row .field { flex:1; margin-bottom:0; }
+    .folder-or { font-size:12px; color:var(--sub); font-family:var(--mono); padding-bottom:11px; flex-shrink:0; }
+    .folder-select { width:100%; background:var(--panel); border:1px solid var(--border); color:var(--text); font-family:var(--mono); font-size:13px; padding:10px 13px; border-radius:8px; outline:none; cursor:pointer; transition:border-color 0.15s, box-shadow 0.15s; appearance:none; }
+    .folder-select:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-t); }
+    .folder-select:disabled { opacity:0.45; cursor:not-allowed; }
+    .folder-select-wrap { position:relative; }
+    .folder-select-wrap svg { position:absolute; right:11px; top:50%; transform:translateY(-50%); width:13px; height:13px; stroke:var(--sub); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; pointer-events:none; }
+
+    /* Picker zone */
+    .dropzone { border:2px dashed var(--border2); border-radius:12px; padding:48px 24px; text-align:center; margin-bottom:16px; }
+    .dropzone-icon { width:44px; height:44px; background:var(--card); border:1px solid var(--border2); border-radius:10px; display:flex; align-items:center; justify-content:center; margin:0 auto 14px; }
+    .dropzone-icon svg { width:22px; height:22px; stroke:var(--sub); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+    .dropzone h3 { font-size:14px; font-weight:500; margin-bottom:4px; }
+    .dropzone p { font-size:12px; color:var(--sub); }
+
+    /* File queue */
+    .file-queue { list-style:none; display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+    .file-row { display:flex; align-items:center; gap:12px; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px 14px; transition:opacity 0.3s, transform 0.3s; }
+    .file-row.removing { opacity:0; transform:translateX(12px); }
+    .file-row-icon { width:30px; height:30px; background:var(--accent-t); border-radius:6px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .file-row-icon svg { width:14px; height:14px; stroke:var(--accent); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+    .file-row-info { flex:1; min-width:0; }
+    .file-row-name { font-family:var(--mono); font-size:12px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .file-row-size { font-family:var(--mono); font-size:11px; color:var(--sub); }
+    .file-row-remove { background:none; border:none; color:var(--dim); cursor:pointer; padding:4px; border-radius:4px; display:flex; align-items:center; transition:color 0.15s; flex-shrink:0; }
+    .file-row-remove:hover { color:var(--danger); }
+    .file-row-remove svg { width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
+    /* Progress (upload) */
+    .progress-wrap { margin-top:12px; }
+    .progress-label { display:flex; justify-content:space-between; font-size:11px; font-family:var(--mono); color:var(--sub); margin-bottom:6px; }
+    .progress-track { height:4px; background:var(--border); border-radius:999px; overflow:hidden; }
+    .progress-fill { height:100%; background:var(--accent); border-radius:999px; width:0%; transition:width 0.3s ease; }
+
+    /* Download tab: sticky toolbar */
+    .dl-toolbar { position:sticky; top:0; z-index:30; background:var(--bg); padding:2px 0 10px; }
+    .dl-toolbar.stuck { box-shadow:0 12px 16px -12px rgba(0,0,0,0.7); }
+    .dl-controls { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; align-items:flex-end; }
+    .dl-controls .folder-select-wrap { min-width:150px; }
+    .dl-controls .folder-select-wrap { flex:1; }
+    .dl-controls .folder-select { width:100%; }
+    .search-row { display:flex; gap:8px; margin-bottom:8px; }
+    .search-wrap { flex:1; position:relative; }
+    .search-wrap svg { position:absolute; left:12px; top:50%; transform:translateY(-50%); width:15px; height:15px; stroke:var(--sub); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; pointer-events:none; }
+    .search-wrap input { width:100%; background:var(--panel); border:1px solid var(--border); color:var(--text); font-family:var(--mono); font-size:13px; padding:10px 13px 10px 36px; border-radius:8px; outline:none; transition:border-color 0.15s, box-shadow 0.15s; }
+    .search-wrap input::placeholder { color:var(--dim); }
+    .search-wrap input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-t); }
+
+    .results-bar { display:flex; align-items:center; gap:12px; height:40px; padding:0 12px; background:var(--panel); border:1px solid var(--border); border-radius:8px; transition:background 0.15s, border-color 0.15s; }
+    .results-bar.selmode { background:var(--accent-t); border-color:var(--accent); }
+    .sel-all { display:flex; align-items:center; gap:10px; font:500 12px var(--mono); cursor:pointer; }
+    .results-hint { margin-left:auto; font:11px var(--mono); color:var(--dim); }
+    .sel-actions { margin-left:auto; display:flex; gap:6px; }
+    .mini { font:500 11px var(--sans); padding:6px 12px; border-radius:6px; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--sub); transition:color 0.15s, border-color 0.15s, background 0.15s; }
+    .mini:disabled { opacity:0.5; cursor:not-allowed; }
+    .mini-ghost:hover:not(:disabled) { color:var(--text); border-color:var(--border2); }
+    .mini-danger { background:var(--danger); border-color:var(--danger); color:#fff; }
+    .mini-danger:hover { background:#dc2626; }
+    .mini-primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .mini-primary:hover:not(:disabled) { background:var(--accent-d); }
+    .spinning svg { animation:spin 1s linear infinite; }
+    @media (max-width:620px) { .results-hint { display:none; } }
+
+    /* Checkbox */
+    .chk { appearance:none; -webkit-appearance:none; width:16px; height:16px; margin:0; flex-shrink:0; border:1.5px solid var(--border2); border-radius:5px; background:var(--panel); display:inline-grid; place-content:center; cursor:pointer; transition:background 0.12s, border-color 0.12s; }
+    .chk:checked, .chk:indeterminate { background:var(--accent); border-color:var(--accent); }
+    .chk:checked::after { content:""; width:9px; height:5px; border-left:2px solid #fff; border-bottom:2px solid #fff; transform:rotate(-45deg) translate(1px,-1px); }
+    .chk:indeterminate::after { content:""; width:8px; height:2px; background:#fff; border-radius:1px; }
+
+    /* File list (download) */
+    .dl-list { list-style:none; display:flex; flex-direction:column; gap:4px; }
+    .dl-item { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 14px; background:var(--panel); border:1px solid var(--border); border-radius:8px; cursor:pointer; user-select:none; content-visibility:auto; contain-intrinsic-size:auto 60px; transition:border-color 0.15s, background 0.15s; }
+    .dl-item:hover { border-color:var(--border2); background:var(--card); }
+    .dl-item .chk { pointer-events:none; }
+    .dl-item-info { min-width:0; flex:1; }
+    .dl-item-name { font-family:var(--mono); font-size:12px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .dl-item-meta { font-family:var(--mono); font-size:11px; color:var(--sub); }
+    .dl-item-actions { display:flex; gap:6px; flex-shrink:0; }
+    .dl-btn { background:none; border:1px solid var(--border); color:var(--sub); font-size:11px; font-family:var(--sans); font-weight:500; padding:5px 12px; border-radius:6px; cursor:pointer; transition:border-color 0.15s, color 0.15s; }
+    .dl-item:hover .dl-btn { border-color:var(--accent); color:var(--accent); }
+    .dl-btn-del { opacity:0; display:flex; align-items:center; padding:5px 8px; }
+    .dl-btn-del svg { width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+    .dl-item:hover .dl-btn-del, .dl-item.selected .dl-btn-del { opacity:1; }
+    .dl-item .dl-btn-del:hover { color:var(--danger); border-color:var(--danger); }
+    .dl-item .dl-btn-ren:hover { color:var(--accent); border-color:var(--accent); }
+    .rn-warn { display:flex; gap:10px; align-items:flex-start; margin:0 0 14px; padding:11px 13px; border-radius:10px;
+      background:rgba(245,158,11,0.14); border:1px solid rgba(245,158,11,0.55); box-shadow:0 0 14px rgba(245,158,11,0.18);
+      color:var(--text); font-size:12.5px; line-height:1.55; }
+    .rn-warn svg { flex:none; width:18px; height:18px; margin-top:1px; stroke:var(--warn); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+    .rn-warn strong { color:var(--warn); font-weight:600; }
+    .rn-msg { font-size:12px; line-height:1.5; color:var(--sub); min-height:18px; margin:10px 0 18px; word-break:break-all; }
+    .rn-msg.err { color:var(--danger); }
+    .rn-msg strong { color:var(--text); font-family:var(--mono); font-weight:500; }
+
+    /* File type accent colors on hover */
+    .dl-item.type-media:hover { border-color:var(--accent); }
+    .dl-item.type-media:hover .dl-btn { border-color:var(--accent); color:var(--accent); }
+    .dl-item.type-doc:hover { border-color:#CA8A04; }
+    .dl-item.type-doc:hover .dl-btn { border-color:#CA8A04; color:#CA8A04; }
+    .dl-item.selected, .dl-item.selected:hover { border-color:var(--accent); background:var(--accent-t); }
+
+    /* Group headers (type / extension / folder sorts) */
+    .dl-group { display:flex; align-items:center; gap:10px; padding:14px 4px 4px; font:500 10px var(--mono); letter-spacing:0.09em; text-transform:uppercase; color:var(--sub); user-select:none; }
+    .dl-group:first-child { padding-top:4px; }
+    .dl-group::after { content:""; flex:1; height:1px; background:var(--border); }
+    .dl-group .count { color:var(--dim); letter-spacing:0; }
+    .dl-group span.label { max-width:60%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-transform:none; letter-spacing:0.02em; }
+
+    /* Player HUD (keyboard feedback) */
+    .preview-body { position:relative; }
+    .hud { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.9); padding:10px 18px; border-radius:999px; background:rgba(12,15,26,0.82); border:1px solid var(--border2); color:var(--text); font:500 13px var(--mono); pointer-events:none; opacity:0; transition:opacity 0.15s, transform 0.15s; z-index:5; }
+    .hud.show { opacity:1; transform:translate(-50%,-50%) scale(1); }
+
+    .empty-state { padding:48px 0; text-align:center; font-family:var(--mono); font-size:12px; color:var(--sub); }
+    .list-more { display:flex; justify-content:center; align-items:center; gap:12px; padding:18px; font:11px var(--mono); color:var(--sub); }
+
+    /* Modals */
+    .modal-overlay { position:fixed; inset:0; background:rgba(5,7,12,0.75); display:none; align-items:center; justify-content:center; padding:24px; z-index:100; }
+    .modal-overlay.open { display:flex; }
+    .modal { background:var(--card); border:1px solid var(--border2); border-radius:12px; padding:24px; width:100%; max-width:400px; }
+    .modal.wide { max-width:460px; }
+    .modal-title { font-size:15px; font-weight:600; margin-bottom:8px; }
+    .modal-text { font-size:13px; color:var(--sub); line-height:1.6; margin-bottom:20px; }
+    .modal-text strong { color:var(--text); font-family:var(--mono); font-weight:500; }
+    .modal .btn-row { justify-content:flex-end; }
+    .del-list { list-style:none; max-height:160px; overflow:auto; background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:6px 10px; font:11px var(--mono); }
+    .del-list li { padding:3px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .del-list li.more { color:var(--sub); }
+
+    /* Preview modal */
+    .preview-overlay { position:fixed; inset:0; background:rgba(5,7,12,0.88); backdrop-filter:blur(6px); display:none; flex-direction:column; z-index:200; }
+    .preview-overlay.open { display:flex; }
+    .preview-header { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-bottom:1px solid var(--border); flex-shrink:0; }
+    .preview-title { font-family:var(--mono); font-size:13px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:calc(100% - 80px); }
+    .preview-controls { display:flex; gap:6px; flex-shrink:0; }
+    .preview-btn { width:30px; height:30px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--sub); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:border-color 0.15s, color 0.15s, background 0.15s; line-height:1; }
+    .preview-btn svg { width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+    .preview-btn:hover { border-color:var(--border2); color:var(--text); background:var(--card); }
+    .preview-body { flex:1; overflow:auto; display:flex; align-items:center; justify-content:center; background:#000; min-height:0; }
+    .preview-body video { width:100%; height:100%; max-height:100%; object-fit:contain; display:block; }
+    .preview-body img { max-width:100%; max-height:100%; object-fit:contain; display:block; }
+    .preview-body iframe { width:100%; height:100%; border:none; display:block; background:#fff; }
+    .preview-unavailable { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:60px 24px; color:var(--sub); font-family:var(--mono); font-size:13px; background:var(--panel); width:100%; height:100%; }
+    .preview-unavailable svg { width:40px; height:40px; stroke:var(--dim); fill:none; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+
+    /* Delete confirm input */
+    .delete-input { width:100%; background:var(--panel); border:1px solid rgba(239,68,68,0.3); color:var(--text); font-family:var(--mono); font-size:13px; padding:10px 13px; border-radius:8px; outline:none; margin-top:12px; transition:border-color 0.15s, box-shadow 0.15s; }
+    .delete-input:focus { border-color:var(--danger); box-shadow:0 0 0 3px rgba(239,68,68,0.1); }
+    .delete-input::placeholder { color:var(--dim); }
+
+    /* Dock: progress ring + confirmations, always on screen */
+    .dock { position:fixed; right:24px; bottom:24px; z-index:300; display:flex; flex-direction:column; gap:10px; width:min(340px, calc(100vw - 48px)); pointer-events:none; }
+    .dock-card { pointer-events:auto; display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--card); border:1px solid var(--border2); border-radius:14px; box-shadow:0 14px 34px rgba(0,0,0,0.5); animation:rise 0.22s ease; transition:opacity 0.2s, transform 0.2s; }
+    .dock-card.leaving { opacity:0; transform:translateY(8px); }
+    @keyframes rise { from { opacity:0; transform:translateY(10px); } }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .ring { position:relative; width:44px; height:44px; flex-shrink:0; color:var(--accent); }
+    .dock-card[data-state=done]  .ring { color:var(--success); }
+    .dock-card[data-state=error] .ring { color:var(--danger); }
+    .dock-card[data-state=warn]  .ring { color:var(--warn); }
+    .ring > svg { width:100%; height:100%; }
+    .ring-bg, .ring-fg { fill:none; stroke-width:3.5; }
+    .ring-bg { stroke:var(--border2); }
+    .ring-fg { stroke:currentColor; stroke-linecap:round; stroke-dasharray:113.1; stroke-dashoffset:113.1; transform:rotate(-90deg); transform-origin:50% 50%; transition:stroke-dashoffset 0.4s ease; }
+    .ring.indeterminate > svg { animation:spin 1s linear infinite; }
+    .ring.indeterminate .ring-fg { stroke-dashoffset:80; }
+    .ring-center { position:absolute; inset:0; display:grid; place-items:center; font:500 10px var(--mono); color:var(--text); }
+    .dock-card:not([data-state=busy]) .ring-center { color:inherit; }
+    .ring-center svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+    .dock-info { flex:1; min-width:0; }
+    .dock-title { font:500 12px var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .dock-sub { font-size:11px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .dock-x { background:none; border:none; color:var(--dim); cursor:pointer; font-size:13px; padding:4px; }
+    .dock-x:hover { color:var(--text); }
+    .dock-card[data-state=busy] .dock-x { display:none; }
+
+    /* pw fields row */
+    .pw-row { display:flex; gap:10px; margin-bottom:14px; }
+    .pw-row .field { flex:1; margin-bottom:0; }
+    .field label .lbl-note { font-size:10px; color:var(--dim); margin-left:6px; letter-spacing:0; font-family:var(--sans); }
+    .field-hint { display:flex; align-items:flex-start; gap:7px; font-size:11px; color:var(--sub); line-height:1.5; margin-top:-6px; margin-bottom:14px; }
+    .field-hint svg { width:13px; height:13px; stroke:var(--sub); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; margin-top:1px; }
+
+    /* lock icon on saved bucket row */
+    .remote-item-pw { display:flex; align-items:center; flex-shrink:0; color:var(--sub); }
+    .remote-item-pw svg { width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
+    /* pw prompt modal input */
+    .pw-modal-input { width:100%; background:var(--panel); border:1px solid var(--border); color:var(--text); font-family:var(--mono); font-size:13px; padding:10px 13px; border-radius:8px; outline:none; margin-top:4px; transition:border-color 0.15s, box-shadow 0.15s; }
+    .pw-modal-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-t); }
+
+    /* Back to top (bottom-left) */
+    .to-top { position:fixed; left:24px; bottom:24px; z-index:90; width:44px; height:44px; border-radius:50%; border:1px solid var(--border2); background:var(--card); color:var(--sub); display:grid; place-items:center; cursor:pointer; box-shadow:0 8px 22px rgba(0,0,0,0.4); opacity:0; transform:translateY(10px); pointer-events:none; transition:opacity 0.2s, transform 0.2s, color 0.15s, border-color 0.15s; }
+    .to-top.show { opacity:1; transform:none; pointer-events:auto; }
+    .to-top:hover { color:var(--accent); border-color:var(--accent); }
+    .to-top svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Titlebar -->
+  <header class="titlebar">
+    <div class="logo">
+      <div class="logo-mark"><img src="vault.png" alt="Success Check" width="50" height="50"></div>
+      <div class="logo-text">
+        <div class="logo-name">Vault</div>
+        <div class="logo-hint">private cloud storage</div>
+      </div>
+    </div>
+    <div class="conn-badge" id="connBadge">
+      <span class="dot" id="connDot"></span>
+      <span id="connLabel">not connected</span>
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs" role="tablist">
+    <button class="tab-btn active" id="tab-connect" onclick="switchTab('connect')" role="tab" aria-selected="true">
+      <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Connect
+    </button>
+    <button class="tab-btn" id="tab-upload" onclick="switchTab('upload')" role="tab" aria-selected="false">
+      <svg viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>Upload
+    </button>
+    <button class="tab-btn" id="tab-download" onclick="switchTab('download')" role="tab" aria-selected="false">
+      <svg viewBox="0 0 24 24"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.11"/></svg>Download
+    </button>
+  </div>
+
+  <!-- CONNECT PANEL -->
+  <div class="panel active" id="panel-connect">
+    <div class="conn-state" id="connState">
+      <div class="conn-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="conn-info">
+        <strong id="connBucketName">—</strong>
+        <span>Bucket connected · ready to use</span>
+      </div>
+      <button class="btn btn-danger-ghost" onclick="disconnectBucket()">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Disconnect
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Saved buckets</div>
+      <div class="card-desc">Buckets you've connected before.</div>
+      <ul class="remotes-list" id="remotesList">
+        <li class="empty-remotes">No saved buckets yet.</li>
+      </ul>
+      <div class="feedback" id="remoteFeedback"></div>
+    </div>
+
+    <button class="add-remote-toggle" id="addToggleBtn" onclick="toggleAddForm()">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add a bucket
+    </button>
+
+    <div class="add-remote-form" id="addRemoteForm">
+      <div class="card">
+        <div class="card-title">New bucket</div>
+        <div class="card-desc">Your credentials never leave your device — they're stored encrypted locally.</div>
+        <div class="field">
+          <label>Key ID</label>
+          <input type="text" id="inputAccountId" placeholder="0012a3b4c5d6e7f800000001" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="field">
+          <label>Application key</label>
+          <input type="password" id="inputAppKey" placeholder="K0012xxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label>Bucket name (exactly as you named it in your B2 account)</label>
+          <input type="text" id="inputBucket" placeholder="my-vault-bucket" autocomplete="off" spellcheck="false" />
+        </div>
+        <hr class="divider" style="margin:4px 0 16px;" />
+        <div class="pw-row">
+          <div class="field">
+            <label>Password <span class="lbl-note">optional</span></label>
+            <input type="password" id="inputPw" placeholder="Leave empty to skip" autocomplete="new-password" />
+          </div>
+          <div class="field">
+            <label>Confirm password</label>
+            <input type="password" id="inputPwConfirm" placeholder="Repeat password" autocomplete="new-password" />
+          </div>
+        </div>
+        <div class="field-hint">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          A password protects this bucket on shared or unattended devices. If forgotten, remove and re-add the bucket — your B2 data is unaffected.
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="addRemote()">
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Save bucket
+          </button>
+          <button class="btn btn-ghost" onclick="toggleAddForm()">Cancel</button>
+        </div>
+        <div class="feedback" id="addFeedback"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title">Where do I find these?</div>
+      <div class="card-desc">
+        Log in to <strong style="color:var(--text)">backblaze.com</strong> → <em>App Keys</em> → <em>Add a New Application Key</em>. Copy the Key ID (Account ID) and the Application Key shown once. Your bucket name is listed under <em>Buckets</em>.
+      </div>
+    </div>
+  </div>
+
+  <!-- UPLOAD PANEL -->
+  <div class="panel" id="panel-upload">
+    <div class="card" id="uploadLockCard" style="display:none; text-align:center; padding:36px 24px;">
+      <div style="font-size:13px; color:var(--sub); margin-bottom:12px;">Connect a bucket first to upload files.</div>
+      <button class="btn btn-ghost" onclick="switchTab('connect')">Go to Connect</button>
+    </div>
+
+    <div id="uploadContent">
+      <div class="folder-row">
+        <div class="field">
+          <label>Location</label>
+          <div class="folder-select-wrap">
+            <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            <select class="folder-select" id="folderSelect">
+              <option value="">Bucket root</option>
+            </select>
+          </div>
+        </div>
+        <div class="folder-or">+</div>
+        <div class="field">
+          <label>New subfolder (optional)</label>
+          <input type="text" id="folderNew" placeholder="my-folder" autocomplete="off" spellcheck="false" />
+        </div>
+      </div>
+
+      <div class="dropzone">
+        <div class="dropzone-icon">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <h3>Add files or a folder</h3>
+        <p style="margin-bottom:16px;">Choose what you want to upload</p>
+        <div class="btn-row" style="justify-content:center;">
+          <button class="btn btn-ghost" id="fileadd" onclick="pickFiles()">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Select files
+          </button>
+          <button class="btn btn-ghost" id="folderadd" onclick="pickFolder()">
+            <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            Select folder
+          </button>
+        </div>
+      </div>
+
+      <ul class="file-queue" id="fileQueue"></ul>
+
+      <div id="uploadActions" style="display:none;">
+        <hr class="divider" />
+        <div class="progress-wrap" id="progressWrap" style="display:none;">
+          <div class="progress-label">
+            <span id="progressFile">Uploading…</span>
+            <span id="progressPct">0%</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        </div>
+        <div class="feedback" id="uploadFeedback"></div>
+        <div class="btn-row" style="margin-top:12px;">
+          <button class="btn btn-primary" id="uploadBtn" onclick="startUpload()">
+            <svg viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+            Upload
+          </button>
+          <button class="btn btn-ghost" id="clearBtn" onclick="clearQueue()">Clear</button>
+          <button class="btn btn-danger-ghost" id="abortBtn" style="display:none;" onclick="abortUpload()">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Abort
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOWNLOAD PANEL -->
+  <div class="panel" id="panel-download">
+    <div class="card" id="downloadLockCard" style="display:none; text-align:center; padding:36px 24px;">
+      <div style="font-size:13px; color:var(--sub); margin-bottom:12px;">Connect a bucket first to browse files.</div>
+      <button class="btn btn-ghost" onclick="switchTab('connect')">Go to Connect</button>
+    </div>
+
+    <div id="downloadContent">
+      <div class="dl-toolbar" id="dlToolbar">
+        <div class="dl-controls">
+          <div class="folder-select-wrap" style="flex:1;">
+            <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            <select class="folder-select" id="dlFolderFilter" onchange="applyDlFilter()">
+              <option value="">All files</option>
+            </select>
+          </div>
+          <div class="folder-select-wrap" style="flex:0 0 150px;">
+            <svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            <select class="folder-select" id="dlTypeFilter" onchange="applyDlFilter()">
+              <option value="">All types</option>
+              <option value="video">Video</option>
+              <option value="audio">Audio</option>
+              <option value="image">Images</option>
+              <option value="doc">Documents</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="folder-select-wrap" style="flex:0 0 190px;">
+            <svg viewBox="0 0 24 24"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"/></svg>
+            <select class="folder-select" id="dlSort" onchange="onSortChange()" title="Sort files">
+              <optgroup label="Date">
+                <option value="date-desc">Newest first</option>
+                <option value="date-asc">Oldest first</option>
+              </optgroup>
+              <optgroup label="File name">
+                <option value="name-asc">File name A → Z</option>
+                <option value="name-desc">File name Z → A</option>
+              </optgroup>
+              <optgroup label="Path name">
+                <option value="path-asc">Path A → Z</option>
+                <option value="path-desc">Path Z → A</option>
+              </optgroup>
+              <optgroup label="Size">
+                <option value="size-desc">Largest first</option>
+                <option value="size-asc">Smallest first</option>
+              </optgroup>
+              <optgroup label="Grouped">
+                <option value="type">Group by type</option>
+                <option value="ext">Group by extension</option>
+                <option value="folder">Group by folder</option>
+              </optgroup>
+            </select>
+          </div>
+          <button class="btn btn-ghost" id="refreshBtn" onclick="refreshFiles()">
+            <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+            Refresh
+          </button>
+        </div>
+        <div class="search-row">
+          <div class="search-wrap">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="dlSearch" placeholder="Search files…" autocomplete="off" spellcheck="false" oninput="applyDlFilter()" />
+          </div>
+        </div>
+        <div class="results-bar" id="resultsBar">
+          <label class="sel-all">
+            <input type="checkbox" class="chk" id="selAllChk" onchange="toggleSelectAll(this)">
+            <span id="resultsLabel">Files</span>
+          </label>
+          <span class="results-hint" id="resultsHint">Click rows to select · Shift-click for a range</span>
+          <div class="sel-actions" id="selActions" hidden>
+            <button class="mini mini-ghost" onclick="clearSelection()">Clear</button>
+            <button class="mini mini-primary" id="selDownloadBtn" onclick="downloadSelected()">Download</button>
+            <button class="mini mini-danger" id="selDeleteBtn" onclick="openDeleteModal([...selected])">Delete</button>
+          </div>
+        </div>
+      </div>
+      <ul class="dl-list" id="dlList">
+        <li class="empty-state">Connect a bucket to see your files.</li>
+      </ul>
+      <div class="list-more" id="dlMore" hidden>
+        <span id="dlMoreText"></span>
+        <button class="mini mini-ghost" onclick="renderMore()">Show more</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Dock: download progress + confirmations -->
+<div class="dock" id="dock" aria-live="polite"></div>
+
+<!-- Back to top -->
+<button class="to-top" id="toTop" title="Back to top" aria-label="Back to top">
+  <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
+
+<!-- Upload confirm modal -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-title" id="modalTitle">Upload files?</div>
+    <div class="modal-text" id="modalText"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="modalCancel">Cancel</button>
+      <button class="btn btn-primary" id="modalOk">Upload</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete bucket confirm modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-title" style="color:var(--danger);">Delete bucket?</div>
+    <div class="modal-text">
+      This will remove <strong id="deleteBucketName"></strong> from your saved buckets. Your files in B2 are not affected.<br><br>
+      Type <strong style="color:var(--danger);">DELETE</strong> to confirm.
+    </div>
+    <input type="text" class="delete-input" id="deleteConfirmInput" placeholder="DELETE" autocomplete="off" spellcheck="false" oninput="onDeleteInput()" />
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-ghost" id="deleteCancelBtn">Cancel</button>
+      <button class="btn btn-danger" id="deleteOkBtn" disabled>Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete files confirm modal -->
+<div class="modal-overlay" id="delFilesModal">
+  <div class="modal wide" role="dialog" aria-modal="true">
+    <div class="modal-title" style="color:var(--danger);" id="delFilesTitle">Delete files?</div>
+    <div class="modal-text" id="delFilesText" style="margin-bottom:12px;"></div>
+    <ul class="del-list" id="delFilesList"></ul>
+    <div class="modal-text" style="margin:14px 0 0;">Type <strong style="color:var(--danger);">DELETE</strong> to confirm.</div>
+    <input type="text" class="delete-input" id="delFilesInput" placeholder="DELETE" autocomplete="off" spellcheck="false" />
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-ghost" id="delFilesCancel">Cancel</button>
+      <button class="btn btn-danger" id="delFilesOk" disabled>Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rename / move modal -->
+<div class="modal-overlay" id="renameModal">
+  <div class="modal wide" role="dialog" aria-modal="true">
+    <div class="modal-title">Rename or move file</div>
+    <div class="modal-text" style="margin-bottom:10px;">Edit the full path. Changing the folder part moves the file.</div>
+    <div class="rn-warn">
+      <svg viewBox="0 0 24 24"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <div><strong>This takes time.</strong> Renaming copies the file under its new name and then deletes the original, so large files can take a while. Please be patient and keep the app open until it finishes.</div>
+    </div>
+    <input type="text" class="pw-modal-input" id="renameInput" autocomplete="off" spellcheck="false" />
+    <div class="rn-msg" id="renameMsg"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="renameCancel">Cancel</button>
+      <button class="btn btn-primary" id="renameOk" disabled>Rename</button>
+    </div>
+  </div>
+</div>
+
+<!-- Close-while-renaming modal -->
+<div class="modal-overlay" id="closeModal">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-title" style="color:var(--danger);" id="closeTitle">Operation still in progress</div>
+    <div class="modal-text" id="closeText"></div>
+    <div class="btn-row">
+      <button class="btn btn-danger" id="closeAnyway">Close anyway</button>
+      <button class="btn btn-primary" id="closeWait">Keep waiting</button>
+    </div>
+  </div>
+</div>
+
+<!-- Password prompt modal -->
+<div class="modal-overlay" id="pwPromptModal">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-title">Enter password</div>
+    <div class="modal-text">This bucket is password-protected. Enter the password to connect.</div>
+    <input type="password" class="pw-modal-input" id="pwPromptInput" placeholder="Password" autocomplete="current-password" />
+    <div class="feedback" id="pwPromptFeedback" style="margin-top:10px;"></div>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-ghost" id="pwPromptCancel">Cancel</button>
+      <button class="btn btn-primary" id="pwPromptOk">Connect</button>
+    </div>
+  </div>
+</div>
+
+<!-- File preview modal -->
+<div class="preview-overlay" id="previewOverlay">
+  <div class="preview-header">
+    <span class="preview-title" id="previewTitle"></span>
+    <div class="preview-controls">
+      <button class="preview-btn" id="previewExternal" title="Open in external player" hidden>
+        <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      </button>
+      <button class="preview-btn" id="previewDownload" title="Download">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="5 12 12 19 19 12"/></svg>
+      </button>
+      <button class="preview-btn" id="previewClose" title="Close">&#x2715;</button>
+    </div>
+  </div>
+  <div class="preview-body" id="previewBody"></div>
+</div>
+
+<script>
+  // ── State ──
+  const $ = id => document.getElementById(id);
+  let isConnected    = false;
+  let bucketName     = "";
+  let selectedFiles  = [];
+  let remoteFiles    = [];
+  let storedRemotes  = [];
+  let remoteFolders  = [];
+  let uploadIndex    = 0;
+  let uploadTotal    = 1;
+  let abortRequested = false;
+  let uploadedNames  = [];
+  let pendingDeleteName = "";       // bucket name awaiting delete confirmation
+
+  // Download tab state
+  const BATCH  = 120;               // rows rendered per batch
+  const RING_C = 2 * Math.PI * 18;  // ring circumference
+  const selected = new Set();       // selected remote file names
+  const dl  = { active:false, cancelling:false, card:null, name:"", base:"", pct:null };
+  const mdl = { active:false, cancelling:false, card:null, names:[], index:0, dir:"" };
+  let fileMap = new Map(), current = [], shown = 0, lastIdx = null;
+  let pendingDelete = [], deleting = false, loadingFiles = false;
+  let renaming = false, uploading = false, refreshQueued = false, pendingRename = "", adding = false;
+  const hasBackend = () => !!(window.pywebview && window.pywebview.api);   // false only when the page is opened in a plain browser (dev)
+  // Remote-writing operations are mutually exclusive; bucket switching is blocked by every operation.
+  const writeBusy = () => uploading || renaming || deleting;
+  const anyBusy   = () => writeBusy() || dl.active || mdl.active;
+  const warnBusy  = () => notify('warn', 'Another operation is running', 'Wait for it to finish first.', 5000);
+  const io = new IntersectionObserver(e => { if (e[0].isIntersecting) renderMore(); }, { rootMargin:'600px 0px' });
+
+  // File type classification (mirrors worker logic)
+  const VIDEO_EXT = ["mp4","m4v","mkv","webm","mov","avi","wmv","flv","mpg","mpeg","m2ts","mts","3gp","ogv","ts"];
+  const AUDIO_EXT = ["mp3","m4a","wav","flac","aac","ogg","wma","opus","aiff","aif"];
+  const IMAGE_EXT = ["jpg","jfif","jpeg","png","gif","webp","svg","bmp","tiff","tif","heic","avif","ico"];
+  const DOC_EXT   = ["pdf","doc","docx","xls","xlsx","ppt","pptx","txt","rtf","odt","csv"];
+
+  function fileType(name) {
+    const b = baseName(name), i = b.lastIndexOf('.');
+    const ext = i > 0 ? b.slice(i + 1).toLowerCase() : '';
+    if (VIDEO_EXT.includes(ext)) return 'video';
+    if (AUDIO_EXT.includes(ext)) return 'audio';
+    if (IMAGE_EXT.includes(ext)) return 'image';
+    if (DOC_EXT.includes(ext))   return 'doc';
+    return 'other';
+  }
+
+  // ── Tab switching ──
+  function switchTab(name) {
+    ["connect","upload","download"].forEach(t => {
+      document.getElementById("panel-" + t).classList.toggle("active", t === name);
+      const btn = document.getElementById("tab-" + t);
+      btn.classList.toggle("active", t === name);
+      btn.setAttribute("aria-selected", t === name);
+    });
+    if (name === "upload")   { renderUploadGate(); if (isConnected) refreshFiles(); }
+    if (name === "download") { renderDownloadGate(); if (isConnected) refreshFiles(); }
+  }
+
+  // ── Folders: derived from the listed files (no separate backend call) ──
+  function foldersFromFiles(files) {
+    const set = new Set();
+    for (const f of files) {
+      const parts = f.name.split("/"); parts.pop();
+      let p = "";
+      for (const seg of parts) { p += seg + "/"; set.add(p); }
+    }
+    const key = f => f.split("/").filter(Boolean);
+    const isUpper = s => s[0] !== s[0].toLowerCase();   // starts with a capital letter
+	return [...set].sort((a, b) => {
+	  const x = key(a), y = key(b);
+	  for (let i = 0; i < Math.min(x.length, y.length); i++) {
+		const ua = isUpper(x[i]), ub = isUpper(y[i]);
+		if (ua !== ub) return ua ? -1 : 1;               // uppercase-first folders go first
+		const c = x[i].localeCompare(y[i], undefined, { numeric:true, sensitivity:"base" });
+		if (c) return c;
+	  }
+      return x.length - y.length;
+    });
+  }
+  const folderLabel = f => {
+    const segs = f.replace(/\/$/, "").split("/");
+    return "\u00A0\u00A0".repeat(segs.length - 1) + segs[segs.length - 1] + "/";
+  };
+  function syncFolders() {
+    remoteFolders = foldersFromFiles(remoteFiles);
+    populateFolders(remoteFolders); populateDlFolders(remoteFolders);
+  }
+
+  // Upload tab: parent location (dropdown) + optional new subfolder (input)
+  function populateFolders(folders) {
+    const sel = $("folderSelect"), prev = sel.value;
+    sel.innerHTML = '<option value="">Bucket root</option>' +
+      folders.map(f => `<option value="${esc(f)}">${esc(folderLabel(f))}</option>`).join("");
+    sel.value = prev;
+    if (sel.value !== prev) sel.value = "";
+  }
+  function getSelectedPrefix() {            // returns "" (root), "a/b/", or null if the new name is invalid
+    const parent = $("folderSelect").value;
+    const child  = $("folderNew").value.trim().replace(/^\/+|\/+$/g, "");
+    if (!child) return parent;
+    const bad = /[\\:*?"<>|\r\n\0]/.test(child) || child.split("/").some(x => !x.trim() || x === "." || x === "..");
+    return bad ? null : parent + child + "/";
+  }
+  function setUploadFieldsDisabled(on) { $("folderSelect").disabled = on; $("folderNew").disabled = on; $("fileadd").disabled = on; $("folderadd").disabled = on; }
+  function resetUploadFolder() { $("folderSelect").value = ""; $("folderNew").value = ""; }
+  function resetFolderInputs() {             // factory settings for every folder/search control
+    resetUploadFolder();
+    $("dlFolderFilter").value = ""; $("dlTypeFilter").value = ""; $("dlSearch").value = "";
+    $("dlSort").value = sortKey;               // sort choice is a preference: it persists
+  }
+
+  // ── Download folder filter (keeps the current choice across reloads) ──
+  function populateDlFolders(folders) {
+    const sel = $("dlFolderFilter"), prev = sel.value;
+    sel.innerHTML = '<option value="">All files</option>' +
+      folders.map(f => `<option value="${esc(f)}">${esc(folderLabel(f))}</option>`).join("");
+    sel.value = prev;
+    if (sel.value !== prev) { sel.value = ""; applyDlFilter(); }
+  }
+
+  // ── Sorting ──
+  const SORT_DEFAULT = 'date-desc';
+  const collator   = new Intl.Collator(undefined, { numeric:true, sensitivity:'base' });   // "file2" < "file10"
+  const TYPE_ORDER = ['video','audio','image','doc','other'];
+  const TYPE_LABEL = { video:'Videos', audio:'Audio', image:'Images', doc:'Documents', other:'Other' };
+  const dirPart    = n => n.includes('/') ? n.slice(0, n.lastIndexOf('/') + 1) : '';
+  const byName = (a, b) => collator.compare(baseName(a.name), baseName(b.name)) || collator.compare(a.name, b.name);
+  const byPath = (a, b) => {                       // segment by segment, so folders stay together
+    const x = a.name.split('/'), y = b.name.split('/');
+    for (let i = 0; i < Math.min(x.length, y.length); i++) {
+      const lastX = i === x.length - 1, lastY = i === y.length - 1;
+      if (lastX !== lastY) return lastX ? -1 : 1;  // a file sorts before sibling folders
+      const c = collator.compare(x[i], y[i]);
+      if (c) return c;
+    }
+    return x.length - y.length;
+  };
+  const byDate = (a, b) => (Number.isFinite(a.ts) && Number.isFinite(b.ts)) ? a.ts - b.ts : (a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+  const bySize = (a, b) => a.size - b.size;
+  const SORTS = {
+    'date-desc': { cmp:(a, b) => byDate(b, a) || byName(a, b) },
+    'date-asc':  { cmp:(a, b) => byDate(a, b) || byName(a, b) },
+    'name-asc':  { cmp:(a, b) => byName(a, b) },
+    'name-desc': { cmp:(a, b) => byName(b, a) },
+    'path-asc':  { cmp:(a, b) => byPath(a, b) },
+    'path-desc': { cmp:(a, b) => byPath(b, a) },
+    'size-desc': { cmp:(a, b) => bySize(b, a) || byName(a, b) },
+    'size-asc':  { cmp:(a, b) => bySize(a, b) || byName(a, b) },
+    'type':   { cmp:(a, b) => TYPE_ORDER.indexOf(fileType(a.name)) - TYPE_ORDER.indexOf(fileType(b.name)) || byDate(b, a) || byName(a, b),
+                group:f => TYPE_LABEL[fileType(f.name)] },
+    'ext':    { cmp:(a, b) => collator.compare(extOf(a.name), extOf(b.name)) || byName(a, b),
+                group:f => extOf(f.name) ? '.' + extOf(f.name) : 'No extension' },
+    'folder': { cmp:(a, b) => collator.compare(dirPart(a.name), dirPart(b.name)) || byName(a, b),
+                group:f => dirPart(f.name) || 'Bucket root' }
+  };
+  let sortKey = SORT_DEFAULT;
+  try { const k = localStorage.getItem('vault.sort'); if (k && SORTS[k]) sortKey = k; } catch (_) {}
+  $('dlSort').value = sortKey;
+  function onSortChange() {
+    sortKey = $('dlSort').value;
+    try { localStorage.setItem('vault.sort', sortKey); } catch (_) {}
+    applyDlFilter();
+  }
+  const groupOf = f => { const g = SORTS[sortKey].group; return g ? g(f) : null; };
+
+  function applyDlFilter() {
+    const folder = $("dlFolderFilter").value;
+    const type   = $("dlTypeFilter").value;
+    const q      = $("dlSearch").value.trim().toLowerCase();
+    renderFileList(remoteFiles.filter(f =>
+      (!folder || f.name.startsWith(folder)) &&
+      (!type   || fileType(f.name) === type) &&
+      (!q      || f.name.toLowerCase().includes(q))
+    ).sort(SORTS[sortKey].cmp));
+  }
+
+  // ── Add-new form ──
+  function toggleAddForm() {
+    const form = document.getElementById("addRemoteForm");
+    const isOpen = form.classList.contains("open");
+    form.classList.toggle("open", !isOpen);
+    if (isOpen) clearAddForm();
+  }
+  function clearAddForm() {
+    document.getElementById("inputAccountId").value  = "";
+    document.getElementById("inputAppKey").value     = "";
+    document.getElementById("inputBucket").value     = "";
+    document.getElementById("inputPw").value         = "";
+    document.getElementById("inputPwConfirm").value  = "";
+    document.getElementById("addFeedback").className = "feedback";
+  }
+
+  // ── Render stored remotes ──
+  function renderRemotes() {
+    const ul = document.getElementById("remotesList");
+    ul.innerHTML = "";
+    if (!storedRemotes.length) {
+      ul.innerHTML = '<li class="empty-remotes">No saved buckets yet.</li>';
+      return;
+    }
+    storedRemotes.forEach(r => {
+      const li = document.createElement("li");
+      li.className = "remote-item";
+      const lockIcon = r.has_password
+        ? `<span class="remote-item-pw" title="Password-protected"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>`
+        : '';
+	  const isActive = isConnected && bucketName === r.name;
+      li.innerHTML = `
+        <div class="remote-item-icon">
+          <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        </div>
+        <span class="remote-item-name">${esc(r.name)}</span>
+        ${lockIcon}
+        <button class="remote-connect-btn" ${isActive ? 'disabled' : ''} onclick="connectRemote('${esc(r.name)}', ${r.has_password ? 'true' : 'false'})">${isActive ? 'Connected' : 'Connect'}</button>
+        <a href="#" class="remote-delete-btn" onclick="promptDeleteRemote(event,'${esc(r.name)}')" title="Remove">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+        </a>`;
+      ul.appendChild(li);
+    });
+  }
+
+  // ── Delete bucket with typed confirmation ──
+  function promptDeleteRemote(e, name) {
+    e.preventDefault();
+    if (isConnected && bucketName === name && anyBusy()) return warnBusy();
+    pendingDeleteName = name;
+    document.getElementById("deleteBucketName").textContent = name;
+    document.getElementById("deleteConfirmInput").value = "";
+    document.getElementById("deleteOkBtn").disabled = true;
+    document.getElementById("deleteModal").classList.add("open");
+  }
+
+  function onDeleteInput() {
+    const val = document.getElementById("deleteConfirmInput").value;
+    document.getElementById("deleteOkBtn").disabled = val !== "DELETE";
+  }
+
+  document.getElementById("deleteCancelBtn").onclick = () => {
+    document.getElementById("deleteModal").classList.remove("open");
+    pendingDeleteName = "";
+  };
+
+  document.getElementById("deleteOkBtn").onclick = async () => {
+    document.getElementById("deleteModal").classList.remove("open");
+    const name = pendingDeleteName;
+    pendingDeleteName = "";
+    if (isConnected && bucketName === name && anyBusy()) return warnBusy();
+    const fb = document.getElementById("remoteFeedback");
+    if (hasBackend()) {
+      let res;
+      try { res = await window.pywebview.api.delete_remote(name); }
+      catch (e) { res = { ok:false, error:String(e) }; }
+      if (!res || !res.ok) { showFeedback(fb, "err", (res && res.error) || `Could not remove ${name}.`); return; }
+    }
+    storedRemotes = storedRemotes.filter(r => r.name !== name);
+    renderRemotes();
+    if (isConnected && bucketName === name) setDisconnected();
+    showFeedback(fb, "ok", `${name} removed.`);
+  };
+
+  // ── Connect / disconnect ──
+  function promptPassword() {
+    return new Promise(resolve => {
+      $('pwPromptInput').value = '';
+      $('pwPromptFeedback').className = 'feedback';
+      $('pwPromptModal').classList.add('open');
+      setTimeout(() => $('pwPromptInput').focus(), 50);
+      const cleanup = result => {
+        $('pwPromptModal').classList.remove('open');
+        $('pwPromptInput').removeEventListener('keydown', onKey);
+        resolve(result);
+      };
+      const onKey = e => { if (e.key === 'Enter') cleanup($('pwPromptInput').value); };
+      $('pwPromptInput').addEventListener('keydown', onKey);
+      $('pwPromptOk').onclick     = () => cleanup($('pwPromptInput').value);
+      $('pwPromptCancel').onclick = () => cleanup(null);
+    });
+  }
+
+  async function connectRemote(name, hasPassword = false) {
+    if (anyBusy()) return warnBusy();
+    const fb = document.getElementById("remoteFeedback");
+    let password = '';
+    if (hasPassword) {
+      password = await promptPassword();
+      if (password === null) return; // user cancelled
+      if (anyBusy()) return warnBusy();
+    }
+    showFeedback(fb, "busy", `Connecting to ${name}…`);
+    if (!hasBackend()) { setConnected(name); fb.className = "feedback"; return; }   // dev mode (plain browser)
+    try {
+      const result = await window.pywebview.api.connect_remote(name, password);
+      if (result.ok) { setConnected(name); fb.className = "feedback"; }
+      else showFeedback(fb, "err", result.error || "Connection failed.");
+    } catch(e) { showFeedback(fb, "err", `Connection failed: ${e}`); }
+  }
+
+  async function addRemote() {
+    if (adding) return;
+    const accountId = document.getElementById("inputAccountId").value.trim();
+    const appKey    = document.getElementById("inputAppKey").value.trim();
+    const bucket    = document.getElementById("inputBucket").value.trim();
+    const pw        = document.getElementById("inputPw").value;
+    const pwConfirm = document.getElementById("inputPwConfirm").value;
+    const fb        = document.getElementById("addFeedback");
+    if (!accountId || !appKey || !bucket) { showFeedback(fb, "err", "All three fields are required."); return; }
+    if (pw !== pwConfirm) { showFeedback(fb, "err", "Passwords don't match."); return; }
+    adding = true;
+    showFeedback(fb, "busy", "Saving bucket…");
+    try {
+      if (!hasBackend()) {   // dev mode (plain browser)
+        if (!storedRemotes.find(r => r.name === bucket)) storedRemotes.push({ name: bucket, has_password: pw.length > 0 });
+        renderRemotes(); toggleAddForm();
+        showFeedback(document.getElementById("remoteFeedback"), "ok", `${bucket} saved (dev mode).`);
+        return;
+      }
+      const result = await window.pywebview.api.add_remote(accountId, appKey, bucket, pw);
+      if (result.ok) {
+        if (!storedRemotes.find(r => r.name === bucket)) storedRemotes.push({ name: bucket, has_password: pw.length > 0 });
+        renderRemotes(); toggleAddForm();
+        showFeedback(document.getElementById("remoteFeedback"), "ok", `${bucket} saved.`);
+      } else { showFeedback(fb, "err", result.error || "Failed to save bucket."); }
+    } catch(e) {
+      showFeedback(fb, "err", `Failed to save bucket: ${e}`);
+    } finally { adding = false; }
+  }
+
+  function setConnected(bucket) {
+    const changed = bucketName !== bucket;
+    isConnected = true; bucketName = bucket;
+    document.getElementById("connDot").classList.add("connected");
+    document.getElementById("connLabel").textContent = bucket;
+    document.getElementById("connState").classList.add("visible");
+    document.getElementById("connBucketName").textContent = bucket;
+	if (changed) { streamBase = null; resetFolderInputs(); resetFiles(); }
+	renderRemotes();
+  }
+  function setDisconnected() {
+    streamBase = null;
+    isConnected = false; bucketName = "";
+    document.getElementById("connDot").classList.remove("connected");
+    document.getElementById("connLabel").textContent = "not connected";
+    document.getElementById("connState").classList.remove("visible");
+    resetFolderInputs();
+    resetFiles();
+	renderRemotes();
+  }
+  async function disconnectBucket() {
+    if (anyBusy()) return warnBusy();
+    try { await window.pywebview.api.disconnect(); } catch(_) {}
+    setDisconnected();
+  }
+
+  // ── Upload gate ──
+  function renderUploadGate() {
+    document.getElementById("uploadLockCard").style.display = isConnected ? "none"  : "block";
+    document.getElementById("uploadContent").style.display  = isConnected ? "block" : "none";
+  }
+
+  // ── File picking ──
+  async function pickFiles()  { addToQueue(await window.pywebview.api.pick_files()); }
+  async function pickFolder() { addToQueue(await window.pywebview.api.pick_folder()); }
+
+  function addToQueue(res) {
+    if (!res || !res.ok) return;
+    for (const item of res.items) {
+      if (!selectedFiles.find(s => s.path === item.path)) selectedFiles.push(item);
+    }
+    renderQueue();
+  }
+
+  function renderQueue() {
+    const ul      = document.getElementById("fileQueue");
+    const actions = document.getElementById("uploadActions");
+    ul.innerHTML  = "";
+    if (!selectedFiles.length) { actions.style.display = "none"; return; }
+    actions.style.display = "block";
+    selectedFiles.forEach(f => {
+      const li = document.createElement("li");
+      li.className    = "file-row";
+      li.dataset.path = f.path;
+      li.innerHTML = `
+        <div class="file-row-icon">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div class="file-row-info">
+          <div class="file-row-name">${esc(f.name)}</div>
+          <div class="file-row-size">${f.is_dir ? "folder" : fmtSize(f.size)}</div>
+        </div>
+        <button class="file-row-remove" onclick="removeFile(this)" title="Remove">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>`;
+      ul.appendChild(li);
+    });
+  }
+
+  function removeFileFromQueue(path) {
+    selectedFiles = selectedFiles.filter(f => f.path !== path);   // update the data immediately; only the animation is delayed
+    const ul  = document.getElementById("fileQueue");
+    const row = ul.querySelector(`[data-path="${CSS.escape(path)}"]`);
+    if (!row) return;
+    row.classList.add("removing");
+    setTimeout(() => row.remove(), 300);
+  }
+
+  function removeFile(btn) {
+    const path = btn.closest("li").dataset.path;
+    selectedFiles = selectedFiles.filter(f => f.path !== path);
+    renderQueue();
+  }
+
+  function clearQueue() {
+    selectedFiles = [];
+    renderQueue();
+    document.getElementById("uploadFeedback").className = "feedback";
+    document.getElementById("progressWrap").style.display = "none";
+  }
+
+  // ── Upload ──
+  async function startUpload() {
+    const fb       = document.getElementById("uploadFeedback");
+    const prog     = document.getElementById("progressWrap");
+    const fill     = document.getElementById("progressFill");
+    const pct      = document.getElementById("progressPct");
+    const lbl      = document.getElementById("progressFile");
+    const btn      = document.getElementById("uploadBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const abortBtn = document.getElementById("abortBtn");
+    if (!selectedFiles.length) return;
+    if (writeBusy()) return warnBusy();
+
+    const prefix = getSelectedPrefix();
+    if (prefix === null) { showFeedback(fb, "err", "The new subfolder name contains invalid characters."); return; }
+    const n      = selectedFiles.length;
+    const isNew  = prefix && !remoteFolders.includes(prefix);
+    const where  = prefix ? `<strong>${esc(prefix)}</strong>${isNew ? " <em>(new folder)</em>" : ""}` : "<strong>the bucket root</strong>";
+    uploading = true;                          // claim the flag before the first await
+    const ok     = await showConfirm(
+      `<strong>${n} item${n > 1 ? "s" : ""}</strong> will be uploaded to ${where}.<br><br>` +
+      `Pick the right folder now if you can. Renaming or moving a file later (from the Download tab) means copying it again, which takes time on large files.`
+    );
+    if (!ok) { uploading = false; return; }
+
+    setUploadFieldsDisabled(true);
+    btn.disabled           = true;
+    clearBtn.disabled      = true;
+    abortBtn.style.display = "inline-flex";
+    fb.className           = "feedback";
+    prog.style.display     = "block";
+    setProgress(fill, pct, 0);
+
+    abortRequested = false;
+    uploadedNames  = [];
+    uploadTotal    = selectedFiles.length;
+
+    const queue = [...selectedFiles];
+
+    for (let i = 0; i < queue.length; i++) {
+      if (abortRequested) break;
+      const f = queue[i];
+      uploadIndex = i;
+      lbl.textContent = `Uploading ${f.name}…`;
+      try {
+        const result = await window.pywebview.api.upload(f.path, prefix);
+        if (!result.ok) {
+          if (result.aborted) break;
+          finishUpload(fill, pct, lbl, btn, clearBtn, abortBtn, prog, false, `Failed on ${f.name}: ${result.error}`, uploadedNames);
+          return;
+        }
+        uploadedNames.push(f.name);
+        removeFileFromQueue(f.path);
+      } catch(e) {
+        finishUpload(fill, pct, lbl, btn, clearBtn, abortBtn, prog, false, `Upload failed: ${e}`, uploadedNames);
+        return;
+      }
+    }
+
+    if (abortRequested) {
+      finishUpload(fill, pct, lbl, btn, clearBtn, abortBtn, prog, "aborted", null, uploadedNames);
+    } else {
+      finishUpload(fill, pct, lbl, btn, clearBtn, abortBtn, prog, true, null, uploadedNames);
+    }
+  }
+
+  function finishUpload(fill, pct, lbl, btn, clearBtn, abortBtn, prog, status, errMsg, uploaded) {
+    const fb = document.getElementById("uploadFeedback");
+    setUploadFieldsDisabled(false);
+    uploading = false;
+    if (status === true) resetUploadFolder();
+    if (uploaded && uploaded.length) refreshFiles(true);
+    btn.disabled           = false;
+    clearBtn.disabled      = false;
+    abortBtn.style.display = "none";
+    if (status === true) {
+      setProgress(fill, pct, 100);
+      lbl.textContent = "Done";
+      showFeedback(fb, "ok", `${uploaded.length} item${uploaded.length !== 1 ? "s" : ""} uploaded successfully.`);
+      selectedFiles = [];
+      setTimeout(() => { prog.style.display = "none"; setProgress(fill, pct, 0); }, 2000);
+    } else if (status === "aborted") {
+      lbl.textContent    = "Aborted";
+      prog.style.display = "none";
+      setProgress(fill, pct, 0);
+      if (uploaded && uploaded.length) {
+        showFeedback(fb, "warn",
+          `Upload aborted — but ${uploaded.length} item${uploaded.length !== 1 ? "s" : ""} already made it through: ${uploaded.join(", ")}. ` +
+          `You may want to clean those up in your bucket.`);
+      } else {
+        showFeedback(fb, "warn", "Upload aborted — no files were uploaded.");
+      }
+    } else {
+      lbl.textContent    = "Failed";
+      prog.style.display = "none";
+      showFeedback(fb, "err", errMsg || "Upload failed.");
+    }
+  }
+
+  async function abortUpload() {
+    abortRequested = true;
+    try { await window.pywebview.api.abort_upload(); } catch(_) {}
+  }
+
+  function setProgress(fill, pct, val) { fill.style.width = val + "%"; pct.textContent = val + "%"; }
+
+  function updateProgress(itemPct) {
+    const overall = Math.round(((uploadIndex + itemPct / 100) / uploadTotal) * 100);
+    setProgress(document.getElementById("progressFill"), document.getElementById("progressPct"), overall);
+  }
+
+  // ══════════ DOWNLOAD TAB ══════════
+
+  // ── Dock cards: ring progress + confirmations, fixed on screen ──
+  const ICON = {
+    done:  '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>',
+    error: '<svg viewBox="0 0 24 24"><line x1="12" y1="6" x2="12" y2="13"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>',
+    warn:  '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
+  };
+
+  function createCard() {
+    const el = document.createElement('div');
+    el.className = 'dock-card';
+    el.innerHTML = `
+      <div class="ring"><svg viewBox="0 0 44 44"><circle class="ring-bg" cx="22" cy="22" r="18"/><circle class="ring-fg" cx="22" cy="22" r="18"/></svg><span class="ring-center"></span></div>
+      <div class="dock-info"><div class="dock-title"></div><div class="dock-sub"></div></div>
+      <button class="mini mini-ghost dock-act" hidden></button>
+      <button class="dock-x" title="Dismiss">&#x2715;</button>`;
+    $('dock').appendChild(el);
+    const q = s => el.querySelector(s);
+    let timer, gone = false;
+    const card = {
+      update({ state = 'busy', pct = null, title, sub, action = null, ttl = 0 }) {
+        if (gone) return;
+        clearTimeout(timer);
+        el.dataset.state = state;
+        q('.ring').classList.toggle('indeterminate', state === 'busy' && pct == null);
+        q('.ring-fg').style.strokeDashoffset = state !== 'busy' ? 0 : pct == null ? '' : RING_C * (1 - pct / 100);
+        const c = q('.ring-center');
+        if (state === 'busy') c.textContent = pct == null ? '' : pct + '%'; else c.innerHTML = ICON[state];
+        if (title !== undefined) { q('.dock-title').textContent = title; q('.dock-title').title = title; }
+        if (sub !== undefined)   { q('.dock-sub').textContent = sub;     q('.dock-sub').title = sub; }
+        const b = q('.dock-act');
+        b.hidden = !action;
+        if (action) { b.textContent = action.label; b.disabled = !!action.disabled; b.onclick = action.onClick; }
+        if (ttl) timer = setTimeout(card.remove, ttl);
+      },
+      remove() {
+        if (gone) return;
+        gone = true; clearTimeout(timer);
+        el.classList.add('leaving'); setTimeout(() => el.remove(), 200);
+      }
+    };
+    q('.dock-x').onclick = card.remove;
+    return card;
+  }
+  function notify(state, title, sub, ttl = 7000, action) { createCard().update({ state, title, sub, ttl, action }); }
+
+  // ── File state ──
+  const baseName = n => n.split('/').pop() || n;
+  const plural   = (n, w) => `${n.toLocaleString()} ${w}${n === 1 ? '' : 's'}`;
+
+  function setRemoteFiles(list) {
+    remoteFiles = list;
+    fileMap = new Map(list.map(f => [f.name, f]));
+    for (const n of [...selected]) if (!fileMap.has(n)) selected.delete(n);
+    syncFolders();
+  }
+  function resetFiles() { setRemoteFiles([]); selected.clear(); applyDlFilter(); }
+
+  // ── Download gate ──
+  function renderDownloadGate() {
+    $("downloadLockCard").style.display = isConnected ? "none"  : "block";
+    $("downloadContent").style.display  = isConnected ? "block" : "none";
+  }
+
+  function parseFileLine(line) {
+    const parts = line.split(';');
+    const date  = parts.pop();
+    const size  = Number(parts.pop());
+    return { name: parts.join(';'), size, date, ts: Date.parse(date.replace(' ', 'T')) };
+  }
+
+  async function refreshFiles(queue = false) {
+    const btn = $('refreshBtn');
+    if (btn.disabled) { if (queue) refreshQueued = true; return; }
+    btn.disabled = true; btn.classList.add('spinning'); loadingFiles = true;
+    if (!remoteFiles.length) applyDlFilter();
+    const forBucket = bucketName;
+    try {
+      const res = await window.pywebview.api.list_files();
+      if (!res.ok) throw new Error(res.error || 'Could not fetch files.');
+      if (bucketName === forBucket) setRemoteFiles(res.files.map(parseFileLine).sort((a, b) => b.date.localeCompare(a.date)));
+      else refreshQueued = isConnected;   // stale result: discard it and reload for the new bucket
+    } catch (e) {
+      notify('error', "Couldn't fetch files", String(e.message || e), 9000, { label:'Retry', onClick:refreshFiles });
+    }
+    loadingFiles = false; btn.disabled = false; btn.classList.remove('spinning');
+    applyDlFilter();
+    if (refreshQueued) { refreshQueued = false; refreshFiles(); }
+  }
+
+  // ── List rendering: batches of 120 rows, more load as you scroll ──
+  let groupCount = new Map();
+  function renderFileList(files) {
+    current = files; shown = 0; lastIdx = null;
+    groupCount = new Map();
+    for (const f of files) { const g = groupOf(f); if (g !== null) groupCount.set(g, (groupCount.get(g) || 0) + 1); }
+    $('dlList').innerHTML = files.length ? '' : `<li class="empty-state">${
+      !isConnected ? 'Connect a bucket to see your files.' :
+      loadingFiles ? 'Fetching file list…' :
+      remoteFiles.length ? 'No files match your filters.' : 'This bucket is empty.'}</li>`;
+    renderMore();
+    updateSelectionUI();
+  }
+
+  function renderMore() {
+    const end = Math.min(shown + BATCH, current.length);
+    let html = '';
+    for (let i = shown; i < end; i++) {
+      const f = current[i], type = fileType(f.name);
+      const g = groupOf(f);
+      if (g !== null && (i === 0 || groupOf(current[i - 1]) !== g))
+        html += `<li class="dl-group" aria-hidden="true"><span class="label">${esc(g)}</span><span class="count">${groupCount.get(g).toLocaleString()}</span></li>`;
+      const media = type === 'video' || type === 'audio';
+      const viewable = media || type === 'image' || type === 'doc';
+      const on = selected.has(f.name);
+      html += `<li class="dl-item ${media ? 'type-media' : viewable ? 'type-doc' : ''}${on ? ' selected' : ''}" data-i="${i}" data-name="${esc(f.name)}">
+        <input type="checkbox" class="chk" tabindex="-1"${on ? ' checked' : ''}>
+        <div class="dl-item-info">
+          <div class="dl-item-name" title="${esc(f.name)}">${esc(f.name)}</div>
+          <div class="dl-item-meta">${fmtSize(f.size)} · ${esc(f.date)}</div>
+        </div>
+        <div class="dl-item-actions">
+          ${viewable ? `<button class="dl-btn" data-act="preview">${media ? 'Play' : 'Open'}</button>` : ''}
+          <button class="dl-btn" data-act="download">Download</button>
+          <button class="dl-btn dl-btn-del dl-btn-ren" data-act="rename" title="Rename or move"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>
+          <button class="dl-btn dl-btn-del" data-act="delete" title="Delete"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
+        </div></li>`;
+    }
+    $('dlList').insertAdjacentHTML('beforeend', html);
+    shown = end;
+    const left = current.length - shown, more = $('dlMore');
+    more.hidden = !left;
+    $('dlMoreText').textContent = `Showing ${shown.toLocaleString()} of ${current.length.toLocaleString()}`;
+    if (left) { io.unobserve(more); io.observe(more); }   // re-check: keeps loading until the viewport is full
+  }
+
+  // ── Selection ──
+  function syncRows() {
+    for (const li of $('dlList').children) {
+      if (!li.dataset.name) continue;
+      const on = selected.has(li.dataset.name);
+      li.classList.toggle('selected', on);
+      li.querySelector('.chk').checked = on;
+    }
+  }
+  function updateSelectionUI() {
+    const n = selected.size, total = current.length;
+    const inView = current.reduce((c, f) => c + selected.has(f.name), 0);
+    $('resultsBar').classList.toggle('selmode', n > 0);
+    $('selActions').hidden = !n;
+    $('resultsHint').hidden = n > 0 || !total;
+    $('selDownloadBtn').textContent = n ? `Download ${n.toLocaleString()}` : 'Download';
+    $('selDeleteBtn').textContent   = n ? `Delete ${n.toLocaleString()}` : 'Delete';
+    const chk = $('selAllChk');
+    chk.checked = total > 0 && inView === total;
+    chk.indeterminate = inView > 0 && inView < total;
+    $('resultsLabel').textContent = n ? `${n.toLocaleString()} selected`
+      : !total ? (isConnected ? 'No files' : 'Files')
+      : plural(total, 'file') + (total !== remoteFiles.length ? ` of ${remoteFiles.length.toLocaleString()}` : '');
+  }
+  function toggleSelectAll(chk) {
+    current.forEach(f => chk.checked ? selected.add(f.name) : selected.delete(f.name));
+    syncRows(); updateSelectionUI();
+  }
+  function clearSelection() { selected.clear(); lastIdx = null; syncRows(); updateSelectionUI(); }
+
+  $('dlList').addEventListener('click', e => {
+    const li = e.target.closest('.dl-item');
+    if (!li) return;
+    const name = li.dataset.name, btn = e.target.closest('[data-act]');
+    if (btn) {
+      const act = btn.dataset.act;
+      if (act === 'download') downloadFile(name);
+      else if (act === 'preview') previewFile(name, fileType(name));
+      else if (act === 'rename') openRenameModal(name);
+      else openDeleteModal([name]);
+      return;
+    }
+    const i = +li.dataset.i;
+    if (e.shiftKey && lastIdx !== null && current[lastIdx]) {
+      const on = !selected.has(name);
+      for (let k = Math.min(lastIdx, i); k <= Math.max(lastIdx, i); k++)
+        on ? selected.add(current[k].name) : selected.delete(current[k].name);
+    } else {
+      selected.has(name) ? selected.delete(name) : selected.add(name);
+    }
+    lastIdx = i; syncRows(); updateSelectionUI();
+  });
+
+  // ── Preview: which types the webview can actually render ──
+	const PREVIEW_EXT = {
+	  video: ["mp4","m4v","webm","mov","ogv"],
+	  audio: ["mp3","m4a","wav","flac","aac","ogg","opus"],
+	  image: ["jpg","jpeg","jfif","png","gif","webp","svg","bmp","avif","ico"],
+	  frame: ["pdf","txt","csv"]
+	};
+	const extOf = name => { const b = baseName(name), i = b.lastIndexOf('.'); return i > 0 ? b.slice(i + 1).toLowerCase() : ''; };
+	function previewKind(name) {
+	  const e = extOf(name);
+	  for (const k in PREVIEW_EXT) if (PREVIEW_EXT[k].includes(e)) return k;
+	  return null;   // classified, but not previewable
+	}
+
+	let streamBase = null;   // cached; reset on disconnect or bucket change
+
+	async function getStreamBase() {
+	  if (streamBase) return streamBase;
+	  const r = await window.pywebview.api.start_stream();
+	  if (!r.ok) throw new Error(r.error || 'Stream server unavailable.');
+	  return (streamBase = r.base);
+	}
+	const streamUrl = (base, name) => base + '/' + name.split('/').map(encodeURIComponent).join('/');
+
+	async function previewFile(name, type) {
+	  $('previewTitle').textContent = baseName(name);
+	  $('previewDownload').onclick = () => downloadFile(name);
+	  $('previewExternal').hidden = type !== 'video';
+	  $('previewExternal').onclick = () => openExternal(name);
+	  $('previewOverlay').classList.add('open');
+	  document.body.style.overflow = 'hidden';
+
+	  const kind = previewKind(name), body = $('previewBody');
+	  if (!kind) return showNoPreview(body, 'No preview for this format', name, type);
+
+	  body.innerHTML = '<div class="preview-unavailable"><span>Loading…</span></div>';
+	  let url;
+	  try { url = streamUrl(await getStreamBase(), name); }
+	  catch (e) { return showNoPreview(body, String(e.message || e), name, type); }
+	  if (!$('previewOverlay').classList.contains('open')) return;   // closed while loading
+
+	  let el;
+	  if (kind === 'video' || kind === 'audio') {
+		el = document.createElement(kind);
+		el.controls = true; el.preload = 'metadata';
+		const fail = msg => {
+		  if (!el.isConnected) return;                    // preview was closed meanwhile
+		  el.removeAttribute('src'); el.load();           // drop the connection
+		  showNoPreview(body, msg, name, type);
+		};
+		el.onerror = () => fail("This file's codec isn't supported here");
+		if (kind === 'video') {
+		  // No autoplay: only start once the video track is known to decode
+		  el.onloadedmetadata = () => {
+			if (el.videoWidth === 0) return fail("This video can't be displayed here");
+			el.play().catch(() => {});
+		  };
+		  // Safety net: dimensions parsed but no frames ever decode (e.g. 10-bit)
+		  el.onplaying = () => setTimeout(() => {
+			if (el.isConnected && !el.paused && el.currentTime > 1 &&
+			    el.getVideoPlaybackQuality().totalVideoFrames === 0)
+			  fail("This video can't be displayed here");
+		  }, 2500);
+		} else {
+		  el.autoplay = true;
+		}
+	  } else if (kind === 'image') {
+		el = document.createElement('img'); el.alt = baseName(name);
+		el.onerror = () => showNoPreview(body, "Couldn't load this image", name, type);
+	  } else {
+		el = document.createElement('iframe');
+	  }
+	  el.src = url;
+	  body.innerHTML = '';
+	  body.appendChild(el);
+	}
+
+	function showNoPreview(body, msg, name, type) {
+	  body.innerHTML = `<div class="preview-unavailable"><span>${esc(msg)}</span>
+		<span style="font-size:11px;color:var(--dim);">Use the download button to view it locally.</span></div>`;
+	  if (type === 'video') {
+		const b = document.createElement('button');
+		b.className = 'btn btn-primary';
+		b.textContent = 'Open in external player';
+		b.onclick = () => openExternal(name);
+		body.firstElementChild.appendChild(b);
+	  }
+	}
+
+	// Python builds the stream URL itself (validates the name, starts/reuses the server)
+	async function openExternal(name) {
+	  try {
+		const r = await window.pywebview.api.open_external(name);
+		if (r.ok) return closePreview();
+		if (r.no_player)
+		  return notify('warn', 'No video player found', 'Pick VLC, mpv or any player that accepts a URL.', 12000, {
+			label: 'Choose player',
+			onClick: async () => { if ((await window.pywebview.api.pick_player()).ok) openExternal(name); }
+		  });
+		notify('error', "Couldn't open player", r.error || 'Unknown error', 8000);
+	  } catch (e) {
+		notify('error', "Couldn't open player", String(e), 8000);
+	  }
+	}
+
+	function closePreview() {
+	  if (document.fullscreenElement) { try { document.exitFullscreen(); } catch (_) {} }
+	  const m = $('previewBody').querySelector('video, audio');
+	  if (m) { m.pause(); m.removeAttribute('src'); m.load(); }   // actually drops the connection
+	  $('previewOverlay').classList.remove('open');
+	  $('previewBody').innerHTML = '';
+	  document.body.style.overflow = '';
+	}
+	
+	$('previewClose').onclick = closePreview;
+	$('previewOverlay').addEventListener('click', e => {
+	  if (e.target === $('previewOverlay')) closePreview();
+	});
+
+  // ── Download: folder picker → ring progress → confirmation ──
+  function updateDownloadProgress(pct, idx = null, total = null) {  
+    if (mdl.active) {
+      if (!mdl.card || mdl.cancelling) return;
+      const sub = (idx !== null && total !== null)
+        ? `${idx + 1} of ${total} · ${pct}%`
+        : `Downloading · ${pct}%`;
+      mdl.card.update({ pct, title: `Downloading ${mdl.names.length} files`, sub, action: { label:'Cancel', onClick:cancelMultiDownload } });
+    } else {
+      if (!dl.card || dl.cancelling) return;
+      dl.pct = pct;
+      dl.card.update({ pct, title: dl.base, sub: `Downloading · ${pct}%`, action: { label:'Cancel', onClick:cancelDownload } });
+    }
+  }
+  async function cancelDownload() {
+    if (!dl.active || dl.cancelling || !dl.card) return;
+    dl.cancelling = true;
+    dl.card.update({ pct: dl.pct, title: dl.base, sub: 'Cancelling…', action: { label:'Cancelling…', disabled:true } });
+    try { await window.pywebview.api.cancel_download(); } catch (_) {}
+  }
+  async function cancelMultiDownload() {
+    if (!mdl.active || mdl.cancelling) return;
+    mdl.cancelling = true;
+    if (mdl.card) mdl.card.update({ title:`Downloading ${mdl.names.length} files`, sub:'Cancelling…', action:{ label:'Cancelling…', disabled:true } });
+    try { await window.pywebview.api.cancel_download(); } catch(_) {}
+  }
+
+  async function downloadSelected() {
+    const names = [...selected];
+    if (!names.length) return;
+    if (dl.active || mdl.active)
+      return notify('warn', 'Download in progress', 'Wait for it to finish or cancel it first.', 4000);
+
+    mdl.active = true;                         // claim the flag before the first await
+    let dir;
+    try { dir = (await window.pywebview.api.pick_download_dir()).path; }
+    catch (e) { mdl.active = false; return notify('error', "Couldn't open folder picker", String(e), 7000); }
+    if (!dir) { mdl.active = false; return; }
+
+    Object.assign(mdl, { active:true, cancelling:false, names, index:0, dir });
+    const card = mdl.card = createCard();
+    card.update({ title:`Downloading ${names.length} files`, sub:'Starting…', action:{ label:'Cancel', onClick:cancelMultiDownload } });
+
+    let doneCount = 0, failedNames = [];
+
+    for (let i = 0; i < names.length; i++) {
+      if (mdl.cancelling) break;
+      mdl.index = i;
+      const name = names[i];
+      card.update({
+        pct: Math.round((i / names.length) * 100),
+        title: `Downloading ${names.length} files`,
+        sub: `${i + 1} of ${names.length} · ${baseName(name)}`,
+        action: { label:'Cancel', onClick:cancelMultiDownload }
+      });
+      let res;
+      try { res = await window.pywebview.api.download([name], dir); }
+      catch (e) { res = { ok:false, error:String(e) }; }
+
+      if (res && res.ok)          doneCount++;
+      else if (res && res.canceled) { mdl.cancelling = true; break; }
+      else                          failedNames.push(baseName(name));
+    }
+
+    mdl.active = false; mdl.card = null;
+    clearSelection();
+
+    if (mdl.cancelling)
+      card.update({ state:'warn', title:'Download cancelled', sub:`${doneCount} of ${names.length} saved to ${dir}`, ttl:8000 });
+    else if (!failedNames.length)
+      card.update({ state:'done', title:`${doneCount} files downloaded`, sub:`Saved to ${dir}`, ttl:8000 });
+    else if (doneCount > 0)
+      card.update({ state:'warn', title:`${doneCount} downloaded, ${failedNames.length} failed`,
+        sub: failedNames.slice(0,3).join(', ') + (failedNames.length > 3 ? ` +${failedNames.length - 3} more` : ''), ttl:12000 });
+    else
+      card.update({ state:'error', title:'Download failed', sub:`${failedNames.length} files could not be downloaded.`, ttl:12000 });
+  }
+
+  async function downloadFile(name) {
+    if (dl.active || mdl.active) return notify('warn', 'Download in progress', 'Wait for it to finish or cancel it first.', 4000);
+//    closePreview();
+    Object.assign(dl, { active:true, cancelling:false, name, base:baseName(name), pct:null });
+    let dir;
+    try { dir = (await window.pywebview.api.pick_download_dir()).path; }
+    catch (e) { dl.active = false; return notify('error', "Couldn't open folder picker", String(e), 7000); }
+    if (!dir) { dl.active = false; return; }
+
+    const card = dl.card = createCard();
+    card.update({ title: dl.base, sub: 'Starting…', action: { label:'Cancel', onClick:cancelDownload } });
+    let res;
+    try { res = await window.pywebview.api.download([name], dir); }
+    catch (e) { res = { ok:false, error:String(e) }; }
+    dl.active = false; dl.card = null;
+
+    if (res.ok)            card.update({ state:'done', title:dl.base, sub:`Saved to ${dir}`, ttl:8000 });
+    else if (res.canceled) card.update({ state:'warn', title:dl.base, sub:'Download canceled', ttl:4000 });
+    else card.update({ state:'error', title:dl.base, sub:res.error || 'Download failed.', ttl:12000,
+                       action: { label:'Retry', onClick:() => { card.remove(); downloadFile(name); } } });
+  }
+
+  // ── Delete files: typed DELETE confirmation, single or multiple ──
+  // Backend contract: delete_files(names: list[str]) -> {ok: bool, deleted?: list[str], error?: str}
+  // `deleted` is optional; if omitted, ok=true means everything was deleted.
+  function openDeleteModal(names) {
+    if (!names.length || deleting) return;
+    if (writeBusy()) return warnBusy();
+    if (dl.active && names.includes(dl.name))
+      return notify('warn', 'File is downloading', 'Cancel the download before deleting this file.', 6000);
+    pendingDelete = names; const n = names.length;
+    const size = names.reduce((s, x) => s + (fileMap.get(x)?.size || 0), 0);
+    $('delFilesTitle').textContent = n === 1 ? 'Delete this file?' : `Delete ${plural(n, 'file')}?`;
+    $('delFilesText').innerHTML = `<strong>${plural(n, 'file')}</strong> (${fmtSize(size)}) will be permanently deleted from <strong>${esc(bucketName)}</strong>. Vault can't undo this.`;
+    $('delFilesList').innerHTML = names.slice(0, 50).map(x => `<li title="${esc(x)}">${esc(x)}</li>`).join('')
+      + (n > 50 ? `<li class="more">…and ${(n - 50).toLocaleString()} more</li>` : '');
+    $('delFilesOk').textContent = n === 1 ? 'Delete file' : `Delete ${n.toLocaleString()} files`;
+    $('delFilesInput').value = ''; $('delFilesOk').disabled = true;
+    $('delFilesModal').classList.add('open');
+    setTimeout(() => $('delFilesInput').focus(), 50);
+  }
+  const closeDelModal = () => { $('delFilesModal').classList.remove('open'); pendingDelete = []; };
+
+  async function confirmDelete() {
+    if ($('delFilesInput').value !== 'DELETE') return;
+    if (deleting || !pendingDelete.length) return;      // a second Enter/click must not start another delete
+    if (writeBusy()) { closeDelModal(); return warnBusy(); }
+    const names = pendingDelete, n = names.length;
+    closeDelModal(); deleting = true;
+    const card = createCard();
+    card.update({ title: n === 1 ? 'Deleting file…' : `Deleting ${plural(n, 'file')}…`, sub: n === 1 ? baseName(names[0]) : bucketName });
+    let res;
+    try { res = await window.pywebview.api.delete_files(names); }
+    catch (e) { res = { ok:false, error:String(e) }; }
+    res = res || { ok:false, error:'No response from backend.' };
+    deleting = false;
+	if (!res.ok) refreshFiles();
+
+    const deleted = Array.isArray(res.deleted) ? res.deleted : (res.ok ? names : []);
+    if (deleted.length) {
+      const gone = new Set(deleted);
+      setRemoteFiles(remoteFiles.filter(f => !gone.has(f.name)));
+      applyDlFilter();
+    }
+    const failed = n - deleted.length;
+    if (res.ok && !failed) card.update({ state:'done', title: n === 1 ? 'File deleted' : `Deleted ${plural(n, 'file')}`, sub:bucketName, ttl:6000 });
+    else if (deleted.length) card.update({ state:'warn', title:`Deleted ${deleted.length} of ${n}`, sub: res.error || `${failed} could not be deleted.`, ttl:12000 });
+    else card.update({ state:'error', title:'Delete failed', sub: res.error || 'Nothing was deleted.', ttl:12000 });
+  }
+  $('delFilesCancel').onclick = closeDelModal;
+  $('delFilesOk').onclick = confirmDelete;
+  $('delFilesInput').addEventListener('input', e => { $('delFilesOk').disabled = e.target.value !== 'DELETE'; });
+  $('delFilesInput').addEventListener('keydown', e => { if (e.key === 'Enter') confirmDelete(); });
+
+  // ── Rename / move ──
+  // Backend contract: rename_file(old, new) -> {ok:true} | {ok:false, error, code?:'exists'|'not_found'|'invalid'}
+  // Close hook: Python calls onCloseRequested() when the window is closed mid-rename; confirm_close() = really close.
+  const dirOf = n => n.includes('/') ? n.slice(0, n.lastIndexOf('/') + 1) : '';
+  const bytes = str => new TextEncoder().encode(str).length;
+
+  function checkNewName(v, old) {
+    if (!v) return { err:'', hint:'' };
+    if (v === old) return { err:'Same as the current name.' };
+    if (v.startsWith('/') || v.endsWith('/') || v.includes('//')) return { err:'Path can’t start or end with “/” or contain “//”.' };
+    const segs = v.split('/');
+    if (segs.some(x => x === '.' || x === '..')) return { err:'“.” and “..” aren’t allowed in a path.' };
+    if (/[\x00-\x1f\x7f\\]/.test(v)) return { err:'Control characters and backslashes aren’t allowed.' };
+    if (bytes(v) > 1024 || segs.some(x => bytes(x) > 250)) return { err:'Name too long (max 1024 bytes, 250 per folder/file name).' };
+    if (fileMap.has(v)) return { err:'A file with this name already exists.' };
+    if (remoteFiles.some(f => f.name !== old && f.name.startsWith(v + '/'))) return { err:'A folder with this name already exists.' };
+    for (let i = 1; i < segs.length; i++) {
+      const anc = segs.slice(0, i).join('/');
+      if (anc !== old && fileMap.has(anc)) return { err:`A file named “${anc}” already exists, so it can’t also be a folder.` };
+    }
+    const d = dirOf(v);
+    if (d === dirOf(old)) return { err:'', hint:'' };
+    const isNew = d && !remoteFolders.includes(d);
+    return { err:'', hint:`Moves to <strong>${esc(d || 'bucket root')}</strong>${isNew ? ' <em>(new folder)</em>' : ''}` };
+  }
+
+  function onRenameInput() {
+    const v = $('renameInput').value.trim(), r = checkNewName(v, pendingRename);
+    $('renameMsg').className = 'rn-msg' + (r.err && v ? ' err' : '');
+    $('renameMsg').innerHTML = r.err ? esc(r.err) : (r.hint || '');
+    $('renameOk').disabled = !v || !!r.err;
+  }
+
+  function openRenameModal(name) {
+    if (writeBusy()) return warnBusy();
+    if (loadingFiles) return notify('warn', 'Still loading files', 'Try again in a moment.', 4000);
+    if ((dl.active && dl.name === name) || (mdl.active && mdl.names.includes(name)))
+      return notify('warn', 'File is downloading', 'Cancel the download before renaming this file.', 6000);
+    if ($('previewOverlay').classList.contains('open'))
+      return notify('warn', 'Preview is open', 'Close the preview before renaming.', 5000);
+    pendingRename = name;
+    const inp = $('renameInput');
+    inp.value = name; $('renameMsg').className = 'rn-msg'; $('renameMsg').innerHTML = ''; $('renameOk').disabled = true;
+    $('renameModal').classList.add('open');
+    setTimeout(() => {
+      inp.focus();
+      const b = baseName(name), dot = b.lastIndexOf('.'), start = name.length - b.length;
+      inp.setSelectionRange(start, dot > 0 ? start + dot : name.length);
+    }, 50);
+  }
+  const closeRenameModal = () => { $('renameModal').classList.remove('open'); pendingRename = ''; };
+
+  async function confirmRename() {
+    const from = pendingRename, to = $('renameInput').value.trim();
+    if (!from || $('renameOk').disabled || checkNewName(to, from).err) return;
+    if (writeBusy()) { closeRenameModal(); return warnBusy(); }
+    closeRenameModal(); renaming = true;
+    const moved = dirOf(from) !== dirOf(to);
+    const card = createCard();
+    card.update({ title:'Renaming…', sub:baseName(from) });
+    let res;
+    try { res = await window.pywebview.api.rename_file(from, to); }
+    catch (e) { res = { ok:false, error:String(e) }; }
+    res = res || { ok:false, error:'No response from backend.' };
+    renaming = false;
+    $('closeModal').classList.remove('open');
+    if (res.ok) {
+      setRemoteFiles(remoteFiles.map(f => f.name === from ? { ...f, name:to } : f));
+      applyDlFilter();
+      card.update({ state:'done', title: moved ? 'File moved' : 'File renamed', sub: moved ? `${dirOf(to) || 'bucket root'} · ${baseName(to)}` : baseName(to), ttl:7000 });
+      return;
+    }
+    if (res.code !== 'invalid') refreshFiles();
+    const title = res.code === 'exists' ? 'Name already taken' : res.code === 'not_found' ? 'File no longer exists' : 'Rename failed';
+    card.update({ state:'error', title, sub: res.error || 'Nothing was changed.', ttl:12000 });
+  }
+  $('renameCancel').onclick = closeRenameModal;
+  $('renameOk').onclick = confirmRename;
+  $('renameInput').addEventListener('input', onRenameInput);
+  $('renameInput').addEventListener('keydown', e => { if (e.key === 'Enter') confirmRename(); });
+
+  // Called by app.py's closing handler (window close only). Python has already cancelled the close.
+  function busyNotes() {
+    const n = [];
+    if (renaming) n.push('Rename: it won\u2019t complete and a partial copy may be left in the bucket. Your original file stays intact.');
+    if (uploading) n.push('Upload: it will be aborted. Files already uploaded stay in the bucket; the current file won\u2019t finish.');
+    if (dl.active || mdl.active) n.push('Download: it will be cancelled and a partial file may be left in your download folder.');
+    return n;
+  }
+  let closeTimer = null;
+  function hideCloseModal() { $('closeModal').classList.remove('open'); clearInterval(closeTimer); }
+  function onCloseRequested() {
+    const notes = busyNotes();
+    if (!notes.length) { window.pywebview.api.confirm_close(); return; }   // everything just finished: close for real
+    $('closeTitle').textContent = notes.length > 1 ? 'Operations still in progress'
+      : renaming ? 'Rename still in progress' : uploading ? 'Upload still in progress' : 'Download still in progress';
+    $('closeText').innerHTML = 'If you close now:<br><br>' + notes.map(esc).join('<br><br>');
+    $('closeModal').classList.add('open');
+    clearInterval(closeTimer);
+    closeTimer = setInterval(() => { if (!busyNotes().length) hideCloseModal(); }, 500);   // auto-dismiss once all done
+  }
+  $('closeWait').onclick = hideCloseModal;
+  $('closeAnyway').onclick = async () => { try { await window.pywebview.api.confirm_close(); } catch (_) {} };
+
+  // ── Player shortcuts: F fullscreen · M mute · Space play/pause ──
+  // Capture phase so the native <video> controls never also react (which would double-toggle).
+  let hudTimer = null;
+  function hud(text) {
+    let h = $('previewBody').querySelector('.hud');
+    if (!h) { h = document.createElement('div'); h.className = 'hud'; $('previewBody').appendChild(h); }
+    h.textContent = text; h.classList.add('show');
+    clearTimeout(hudTimer); hudTimer = setTimeout(() => h.classList.remove('show'), 900);
+  }
+  function previewMedia() {
+    return $('previewOverlay').classList.contains('open') ? $('previewBody').querySelector('video, audio') : null;
+  }
+  function isShortcut(e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return null;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return null;
+    return e.key === ' ' ? 'space' : (e.key.length === 1 && 'fm'.includes(e.key.toLowerCase())) ? e.key.toLowerCase() : null;
+  }
+  document.addEventListener('keydown', e => {
+    const key = isShortcut(e), m = key && previewMedia();
+    if (!m) return;
+    e.preventDefault(); e.stopPropagation();
+    if (e.repeat) return;
+    if (key === 'space') {
+      if (m.paused) { m.play().catch(() => {}); hud('Play'); } else { m.pause(); hud('Paused'); }
+    } else if (key === 'm') {
+      m.muted = !m.muted; hud(m.muted ? 'Muted' : 'Unmuted');
+    } else if (key === 'f' && m.tagName === 'VIDEO') {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else { const c = $('previewBody'); (c.requestFullscreen || c.webkitRequestFullscreen).call(c)?.catch?.(() => {}); }
+    }
+  }, true);
+  // A focused button (close/download) would otherwise "click" on Space keyup
+  document.addEventListener('keyup', e => { if (isShortcut(e) === 'space' && previewMedia()) { e.preventDefault(); e.stopPropagation(); } }, true);
+
+  // ── Escape key: preview → delete modal → clear selection ──
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (document.fullscreenElement) return;   // Escape only leaves fullscreen; the preview stays open
+    if ($('previewOverlay').classList.contains('open')) closePreview();
+    else if ($('delFilesModal').classList.contains('open')) closeDelModal();
+    else if ($('closeModal').classList.contains('open')) hideCloseModal();
+    else if ($('renameModal').classList.contains('open')) closeRenameModal();
+    else if ($('pwPromptModal').classList.contains('open')) { $('pwPromptModal').classList.remove('open'); }
+    else if (selected.size && $('panel-download').classList.contains('active')) clearSelection();
+  });
+
+  // ── Back-to-top + sticky-toolbar shadow ──
+  addEventListener('scroll', () => {
+    $('toTop').classList.toggle('show', scrollY > 500);
+    $('dlToolbar').classList.toggle('stuck',
+      $('panel-download').classList.contains('active') && $('dlToolbar').getBoundingClientRect().top <= 0);
+  }, { passive: true });
+  $('toTop').onclick = () => scrollTo({ top: 0, behavior: 'smooth' });
+
+  // ── Helpers ──
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  function showConfirm(html) {
+    return new Promise(resolve => {
+      const modal = document.getElementById("confirmModal");
+      document.getElementById("modalText").innerHTML = html;
+      modal.classList.add("open");
+      const done = result => { modal.classList.remove("open"); resolve(result); };
+      document.getElementById("modalOk").onclick     = () => done(true);
+      document.getElementById("modalCancel").onclick = () => done(false);
+    });
+  }
+
+  function showFeedback(el, type, msg) { el.className = "feedback " + type; el.textContent = msg; }
+
+  function fmtSize(bytes) {
+    if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(1) + " GB";
+    if (bytes >= 1048576)    return (bytes / 1048576).toFixed(1)    + " MB";
+    if (bytes >= 1024)       return (bytes / 1024).toFixed(1)       + " KB";
+    return bytes + " B";
+  }
+
+  // ── Boot ──
+  window.addEventListener('pywebviewready', async function() {
+    try {
+      const r = await window.pywebview.api.get_status();
+      storedRemotes = (r.remotes || []).map(item =>
+        typeof item === 'string' ? { name: item, has_password: false } : item
+      );
+      renderRemotes();
+      if (r.bucket) setConnected(r.bucket);
+    } catch(e) { console.log(e); }
+  });
+  
+  document.addEventListener('DOMContentLoaded', () => {
+		// Listen for any native HTML fullscreen changes (e.g., standard <video> controls, custom players)
+		const handleViewportFullscreenChange = () => {
+			// Evaluate if an element inside index.html is currently maximizing 
+			const isElementFullscreen = !!document.fullscreenElement;
+			
+			if (window.pywebview && window.pywebview.api) {
+				// Forward the explicit true/false state to your Python back-end
+				window.pywebview.api.set_window_fullscreen(isElementFullscreen);
+			}
+		};
+
+		// Attach to modern and legacy rendering engines
+		document.addEventListener('fullscreenchange', handleViewportFullscreenChange);
+		document.addEventListener('webkitfullscreenchange', handleViewportFullscreenChange);
+  });
+
+</script>
+</body>
+</html>
